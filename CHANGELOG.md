@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-05-17
+
+### Fixed
+
+- **PostgreSQL migration crash**: `AddMessageStatus1770108659848` migration contained hardcoded
+  SQLite-specific raw SQL (`datetime` type, `datetime('now')` function) that PostgreSQL doesn't
+  recognize. Migration now detects database type at runtime and uses appropriate SQL syntax.
+  SQLite path is byte-for-byte identical to the original (zero regression). PostgreSQL path uses
+  `timestamp` / `NOW()` / `DEFAULT true` / inline FK constraints. Fixes #59, #62.
+
+### Changed
+
+- **Version badge sync**: Updated version badges in `README.md` (was 0.1.4), `docs/README.md`
+  (was 0.1.0), and Swagger API docs (was 0.1.0) to 0.1.6.
+- **Dependency updates**: Merged Dependabot PRs for 12 npm packages (`@aws-sdk/client-s3`,
+  `@nestjs/swagger`, `bullmq`, `class-validator`, `tar-stream`, `typeorm`, `@types/node`,
+  `eslint`, `globals`, `jest`, `typescript-eslint`) and 1 dashboard package (`globals`).
+- **GitHub Actions**: Upgraded `docker/setup-buildx-action` v3→v4, `codecov/codecov-action` v5→v6,
+  `docker/login-action` v3→v4, `docker/metadata-action` v5→v6, `actions/upload-artifact` v6→v7.
+
 ## [0.1.5] - 2026-04-27
 
 ### Fixed
