@@ -58,6 +58,8 @@ function createSilentLogger(): BaileysLogger {
 }
 
 export class BaileysAdapter implements IWhatsAppEngine {
+  private static readonly MAX_RECONNECT_ATTEMPTS = 5;
+
   private readonly logger = createLogger('BaileysAdapter');
   private readonly authPath: string;
   private readonly sessionStore = new BaileysSessionStore();
@@ -68,6 +70,9 @@ export class BaileysAdapter implements IWhatsAppEngine {
   private pushName: string | null = null;
   private callbacks: EngineEventCallbacks = {};
   private intentionalClose = false;
+  private connecting = false;
+  private reconnectAttempts = 0;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
   /** Lazily loaded @whiskeysockets/baileys module (ESM-only; loaded on first connect, not at boot). */
   private lib?: typeof BaileysLib;
 
@@ -92,14 +97,39 @@ export class BaileysAdapter implements IWhatsAppEngine {
   async initialize(callbacks: EngineEventCallbacks): Promise<void> {
     this.callbacks = callbacks;
     this.intentionalClose = false;
-    await this.connect();
+    try {
+      await this.connect();
+    } catch (err) {
+      this.setStatus(EngineStatus.FAILED);
+      this.callbacks.onError?.(err instanceof Error ? err.message : String(err));
+      throw err;
+    }
   }
 
   private async connect(): Promise<void> {
+    // I4: in-flight guard — skip if a connect() is already in progress.
+    if (this.connecting) {
+      return;
+    }
+    this.connecting = true;
+    try {
+      await this.connectInner();
+    } finally {
+      this.connecting = false;
+    }
+  }
+
+  private async connectInner(): Promise<void> {
     this.setStatus(EngineStatus.INITIALIZING);
     const b = await this.loadLib();
     const { state, saveCreds } = await b.useMultiFileAuthState(this.authPath);
     const { version } = await b.fetchLatestBaileysVersion();
+
+    // C2: resurrect-after-stop guard — if disconnect/logout/destroy ran during the awaits above,
+    // bail now so we don't create a live socket for a session that was intentionally stopped.
+    if (this.intentionalClose) {
+      return;
+    }
 
     const sock = b.default({
       auth: state,
@@ -152,6 +182,8 @@ export class BaileysAdapter implements IWhatsAppEngine {
       this.qrCode = null;
       this.phoneNumber = this.extractPhone(this.sock?.user?.id);
       this.pushName = this.sock?.user?.name ?? null;
+      // I4: reset the reconnect counter on a successful connection.
+      this.reconnectAttempts = 0;
       this.setStatus(EngineStatus.READY);
       this.callbacks.onReady?.(this.phoneNumber ?? '', this.pushName ?? '');
     }
@@ -172,19 +204,42 @@ export class BaileysAdapter implements IWhatsAppEngine {
         return;
       }
 
-      // Recoverable (e.g. restartRequired right after pairing, transient drop) — reconnect.
+      // Recoverable (e.g. restartRequired right after pairing, transient drop) — reconnect with backoff.
       // Do NOT fire onDisconnected here; this is a transient drop, not a terminal disconnect.
       // connect() calls setStatus(INITIALIZING) which fires onStateChanged — that is the correct signal.
       this.logger.log('Baileys connection dropped; reconnecting', { statusCode });
-      this.connect().catch(err => {
+
+      // I4: capped exponential backoff with in-flight timer guard.
+      if (this.reconnectAttempts >= BaileysAdapter.MAX_RECONNECT_ATTEMPTS) {
         this.setStatus(EngineStatus.FAILED);
-        this.callbacks.onError?.(err instanceof Error ? err.message : String(err));
-      });
+        this.callbacks.onError?.(`reconnect attempts exhausted (${this.reconnectAttempts})`);
+        return;
+      }
+      this.reconnectAttempts += 1;
+      const delay = Math.min(30_000, 1_000 * 2 ** (this.reconnectAttempts - 1));
+      // Guard: if a timer is already pending, don't stack another one.
+      if (this.reconnectTimer) {
+        return;
+      }
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = undefined;
+        if (this.intentionalClose) {
+          return; // stopped while waiting — abort
+        }
+        void this.connect().catch(err => {
+          this.setStatus(EngineStatus.FAILED);
+          this.callbacks.onError?.(err instanceof Error ? err.message : String(err));
+        });
+      }, delay);
     }
   }
 
   disconnect(): Promise<void> {
     this.intentionalClose = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     this.sock?.end(undefined);
     this.sock = null;
     this.setStatus(EngineStatus.DISCONNECTED);
@@ -193,6 +248,10 @@ export class BaileysAdapter implements IWhatsAppEngine {
 
   async logout(): Promise<void> {
     this.intentionalClose = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     try {
       await this.sock?.logout();
     } catch (err) {
@@ -210,6 +269,10 @@ export class BaileysAdapter implements IWhatsAppEngine {
 
   destroy(): Promise<void> {
     this.intentionalClose = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     this.sock?.end(undefined);
     this.sock = null;
     this.setStatus(EngineStatus.DISCONNECTED);

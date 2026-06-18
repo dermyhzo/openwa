@@ -134,13 +134,21 @@ describe('BaileysAdapter lifecycle & status', () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const makeWASocket = jest.requireMock('@whiskeysockets/baileys').default as jest.Mock;
     makeWASocket.mockClear();
-    fakeSock.fire('connection.update', {
-      connection: 'close',
-      lastDisconnect: { error: { output: { statusCode: 515 } } },
-    });
-    await new Promise(r => setImmediate(r)); // let the async connect() run
-    expect(makeWASocket).toHaveBeenCalledTimes(1);
-    expect(onDisconnected).not.toHaveBeenCalled();
+
+    // Reconnect is now backoff-delayed (1 s on first attempt): use fake timers to advance.
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] });
+    try {
+      fakeSock.fire('connection.update', {
+        connection: 'close',
+        lastDisconnect: { error: { output: { statusCode: 515 } } },
+      });
+      jest.advanceTimersByTime(1_000);
+      await new Promise(r => setImmediate(r)); // let the async connect() body reach makeWASocket
+      expect(makeWASocket).toHaveBeenCalledTimes(1);
+      expect(onDisconnected).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('disconnect() ends the socket and does not reconnect', async () => {
@@ -168,6 +176,168 @@ describe('BaileysAdapter lifecycle & status', () => {
     await adapter.initialize(noopCallbacks({}));
     fakeSock.fire('creds.update', {});
     expect(saveCreds).toHaveBeenCalled();
+  });
+
+  // C2 — resurrect-after-stop race
+  it('C2: disconnect() during in-flight connect does NOT assign a socket or reach READY', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const baileys = jest.requireMock('@whiskeysockets/baileys') as {
+      fetchLatestBaileysVersion: jest.Mock;
+      default: jest.Mock;
+    };
+
+    // Make fetchLatestBaileysVersion block until we manually resolve it.
+    let resolveVersion!: (v: { version: number[] }) => void;
+    const versionPromise = new Promise<{ version: number[] }>(res => {
+      resolveVersion = res;
+    });
+    baileys.fetchLatestBaileysVersion.mockReturnValueOnce(versionPromise);
+    baileys.default.mockClear();
+
+    const adapter = newAdapter();
+    const initPromise = adapter.initialize(noopCallbacks({}));
+
+    // While connect() is blocked waiting for fetchLatestBaileysVersion, call disconnect().
+    await adapter.disconnect();
+
+    // Now resolve the version fetch.
+    resolveVersion({ version: [2, 3000, 0] });
+    await initPromise.catch(() => undefined); // initialize() resolves regardless
+
+    // The connect() body should have bailed out: no socket created, not READY.
+    expect(baileys.default).not.toHaveBeenCalled();
+    expect(adapter.getStatus()).toBe(EngineStatus.DISCONNECTED);
+  });
+
+  // I5 — first-connect error surfacing
+  it('I5: first connect failure → initialize() rejects, status FAILED, onError fired', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const baileys = jest.requireMock('@whiskeysockets/baileys') as {
+      fetchLatestBaileysVersion: jest.Mock;
+    };
+    baileys.fetchLatestBaileysVersion.mockRejectedValueOnce(new Error('network error'));
+
+    const onError = jest.fn();
+    const adapter = newAdapter();
+    await expect(adapter.initialize(noopCallbacks({ onError }))).rejects.toThrow('network error');
+    expect(adapter.getStatus()).toBe(EngineStatus.FAILED);
+    expect(onError).toHaveBeenCalledWith('network error');
+  });
+});
+
+describe('BaileysAdapter lifecycle hardening — I4 reconnect backoff', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  const baileys = () => jest.requireMock('@whiskeysockets/baileys') as { default: jest.Mock };
+
+  const fireRecoverableClose = (): void => {
+    fakeSock.fire('connection.update', {
+      connection: 'close',
+      lastDisconnect: { error: { output: { statusCode: 515 } } },
+    });
+  };
+
+  // Helper: initialize the adapter with REAL timers (loadLib uses dynamic import),
+  // then hand the test an adapter ready for fake-timer-driven reconnect testing.
+  const initWithRealTimers = async (over: Partial<EngineEventCallbacks> = {}): Promise<BaileysAdapter> => {
+    fakeSock.user = undefined;
+    fakeSock.resetEmitter();
+    jest.clearAllMocks();
+    const adapter = newAdapter();
+    await adapter.initialize(noopCallbacks(over));
+    return adapter;
+  };
+
+  afterEach(() => {
+    // Ensure fake timers are always cleaned up even if a test fails mid-way.
+    jest.useRealTimers();
+  });
+
+  it('I4: after MAX_RECONNECT_ATTEMPTS recoverable closes → FAILED + onError, no more reconnects', async () => {
+    const onError = jest.fn();
+    const adapter = await initWithRealTimers({ onError });
+
+    // Switch to fake timers AFTER initialize() has resolved.
+    jest.useFakeTimers();
+
+    // Each close increments reconnectAttempts and schedules a timer.
+    // After the timer fires, connect() runs and re-attaches listeners to fakeSock.
+    // We do NOT reset the emitter — each reconnect adds new listeners, and the close
+    // event fires them all (they all point at the same adapter, so the increment happens once per fire).
+    // Strategy: fire close → run timers (reconnect executes) → fire close again → repeat.
+    for (let i = 0; i < 5 /* MAX_RECONNECT_ATTEMPTS */; i++) {
+      fireRecoverableClose();
+      await jest.runAllTimersAsync();
+    }
+
+    // The (MAX+1)th close — reconnectAttempts is now MAX → exhausted path
+    fireRecoverableClose();
+    await jest.runAllTimersAsync();
+
+    expect(adapter.getStatus()).toBe(EngineStatus.FAILED);
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('exhausted'));
+  });
+
+  it('I4: successful connection resets the reconnect counter (next drop can reconnect again)', async () => {
+    const onError = jest.fn();
+    const adapter = await initWithRealTimers({ onError });
+
+    jest.useFakeTimers();
+
+    // Fire one recoverable drop and reconnect — increments counter to 1
+    fireRecoverableClose();
+    await jest.runAllTimersAsync();
+
+    // Simulate a successful open — should reset the reconnect counter to 0
+    fakeSock.fire('connection.update', { connection: 'open' });
+    expect(adapter.getStatus()).toBe(EngineStatus.READY);
+
+    // Now exhaust MAX_RECONNECT_ATTEMPTS again — should work because counter was reset
+    for (let i = 0; i < 5 /* MAX_RECONNECT_ATTEMPTS */; i++) {
+      fireRecoverableClose();
+      await jest.runAllTimersAsync();
+    }
+
+    // (MAX+1)th drop after reset → FAILED again
+    fireRecoverableClose();
+    await jest.runAllTimersAsync();
+
+    expect(adapter.getStatus()).toBe(EngineStatus.FAILED);
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining('exhausted'));
+  });
+
+  it('I4: a recoverable close after disconnect() (intentionalClose) does NOT schedule a reconnect', async () => {
+    const adapter = await initWithRealTimers({});
+    baileys().default.mockClear();
+
+    jest.useFakeTimers();
+
+    await adapter.disconnect();
+    // Fire a close event after intentional disconnect — must be ignored entirely
+    fireRecoverableClose();
+    await jest.runAllTimersAsync();
+
+    expect(baileys().default).not.toHaveBeenCalled();
+    expect(adapter.getStatus()).toBe(EngineStatus.DISCONNECTED);
+  });
+
+  it('I4: backoff timers are used — first reconnect is delayed ~1 s (not immediate)', async () => {
+    await initWithRealTimers({});
+    baileys().default.mockClear();
+
+    jest.useFakeTimers({ doNotFake: ['setImmediate'] });
+
+    // First drop: should schedule at delay = 1000 ms (2^0 * 1000)
+    fireRecoverableClose();
+
+    // Advance only 500 ms — connect should NOT have been called yet
+    jest.advanceTimersByTime(500);
+    await new Promise<void>(r => setImmediate(r));
+    expect(baileys().default).not.toHaveBeenCalled();
+
+    // Advance remaining 500 ms → timer fires → connect() is invoked
+    jest.advanceTimersByTime(500);
+    await new Promise<void>(r => setImmediate(r));
+    expect(baileys().default).toHaveBeenCalledTimes(1);
   });
 });
 
