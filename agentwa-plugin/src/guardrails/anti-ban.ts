@@ -1,5 +1,5 @@
 import { Clock, GuardrailPort, IncomingTurn } from '../core/ports';
-import { PluginStorage } from '../../../core/plugins';
+import { PluginStorage } from '../types';
 
 /**
  * Slice-1 anti-ban: skip non-DM/own/status/non-engine messages, and enforce a per-chat cooldown

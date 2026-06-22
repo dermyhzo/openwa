@@ -1,5 +1,5 @@
 import { PluginChatGateway } from './plugin-chat.gateway';
-import { PluginMessagingCapability } from '../../../core/plugins';
+import { PluginMessagingCapability } from '../types';
 
 describe('PluginChatGateway', () => {
   it('sends text through the plugin messaging capability', async () => {

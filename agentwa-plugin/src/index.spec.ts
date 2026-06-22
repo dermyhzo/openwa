@@ -1,6 +1,6 @@
 import { toTurn } from './index';
-import { HookContext } from '../../../core/hooks';
-import { IncomingMessage } from '../../../engine/interfaces/whatsapp-engine.interface';
+import { HookContext } from './types';
+import { IncomingMessage } from './types';
 
 const ctx = (over: Partial<IncomingMessage> = {}, sessionId = 's'): HookContext<IncomingMessage> => ({
   event: 'message:received',

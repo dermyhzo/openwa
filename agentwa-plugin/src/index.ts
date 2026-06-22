@@ -1,6 +1,6 @@
-import { PluginContext, IPlugin } from '../../../core/plugins';
-import { HookContext, HookResult } from '../../../core/hooks';
-import { IncomingMessage } from '../../../engine/interfaces/whatsapp-engine.interface';
+import { PluginContext, IPlugin } from './types';
+import { HookContext, HookResult } from './types';
+import { IncomingMessage } from './types';
 import { AgentCoordinator } from './core/agent.coordinator';
 import { BrandProfile, Clock, IncomingTurn } from './core/ports';
 import { BrandProfileResolver } from './brand/brand-profile.resolver';

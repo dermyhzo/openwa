@@ -1,0 +1,13 @@
+{
+  "name": "agentwa-plugin",
+  "version": "0.1.0",
+  "description": "AgentWA — AI WhatsApp customer-service plugin for OpenWA (installable .zip extension).",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "jest -c jest.config.cjs",
+    "pack": "node pack.cjs",
+    "dist": "npm run build && npm run pack"
+  }
+}
