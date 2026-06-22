@@ -1,7 +1,7 @@
 {
   "id": "agentwa",
   "name": "AgentWA (AI Customer Service)",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "extension",
   "description": "AI customer-service auto-reply (BYOT LLM via APImart), grounded in a per-brand knowledge profile. Disabled by default.",
   "author": "AgentWA",
@@ -12,25 +12,34 @@
   "configSchema": {
     "type": "object",
     "properties": {
-      "provider": { "type": "string", "title": "LLM provider", "enum": ["apimart"], "default": "apimart" },
-      "apiBaseUrl": { "type": "string", "title": "LLM base URL", "default": "https://api.apimart.ai/v1" },
-      "apiKey": { "type": "string", "title": "LLM API key", "secret": true, "required": true },
-      "model": { "type": "string", "title": "Model", "default": "gpt-4o-mini" },
-      "language": { "type": "string", "title": "Reply language", "default": "id" },
-      "perChatCooldownSec": { "type": "number", "title": "Per-chat cooldown (sec)", "default": 30 },
+      "apiKey": {
+        "type": "string",
+        "title": "APImart API Key",
+        "secret": true,
+        "required": true,
+        "description": "Wajib. API key APImart untuk memanggil LLM."
+      },
+      "defaultFaq": {
+        "type": "string",
+        "title": "FAQ / Pengetahuan",
+        "description": "Sumber jawaban bot. Contoh: Q: Jam buka? A: 08.00-21.00. Q: Ongkir? A: Gratis di atas Rp100.000."
+      },
+      "defaultBusinessProfile": {
+        "type": "string",
+        "title": "Profil Bisnis",
+        "description": "Deskripsi singkat bisnis/produk. Contoh: Toko kopi bubuk & biji."
+      },
+      "model": {
+        "type": "string",
+        "title": "Model LLM",
+        "default": "gpt-4o-mini",
+        "description": "Mis. gpt-4o-mini, deepseek-chat."
+      },
       "fallbackMessage": {
         "type": "string",
-        "title": "Fallback message (when not confident)",
-        "default": "Mohon tunggu ya kak, CS kami akan segera membantu."
-      },
-      "defaultBrandName": { "type": "string", "title": "Default brand name", "default": "Toko" },
-      "defaultSystemPersona": { "type": "string", "title": "Default persona", "default": "Ramah, singkat, membantu." },
-      "defaultBusinessProfile": { "type": "string", "title": "Default business profile" },
-      "defaultFaq": { "type": "string", "title": "Default FAQ / knowledge" },
-      "brandProfiles": {
-        "type": "object",
-        "title": "Per-session brand profiles (advanced, JSON)",
-        "description": "Map sessionId -> { name, systemPersona, businessProfile, faq, fallbackMessage }. Leave empty to use the default profile for all sessions."
+        "title": "Pesan Fallback",
+        "default": "Mohon tunggu ya kak, CS kami akan segera membantu.",
+        "description": "Dikirim saat bot tidak yakin / pertanyaan di luar FAQ."
       }
     }
   }
