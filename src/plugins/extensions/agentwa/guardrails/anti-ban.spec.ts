@@ -1,6 +1,6 @@
 import { AntiBanGuard } from './anti-ban';
 import { IncomingTurn, Clock } from '../core/ports';
-import { PluginStorage } from '../../../../core/plugins';
+import { PluginStorage } from '../../../core/plugins';
 
 function fakeStorage(): PluginStorage {
   const m = new Map<string, unknown>();

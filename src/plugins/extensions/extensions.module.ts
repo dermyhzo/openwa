@@ -2,7 +2,6 @@ import { Injectable, Module, OnModuleInit } from '@nestjs/common';
 import { PluginLoaderService, PluginManifest, PluginType } from '../../core/plugins';
 import { AutoReplyPlugin } from './auto-reply';
 import { TranslationPlugin } from './translation';
-import { AgentWaPlugin } from './agentwa';
 import { createLogger } from '../../common/services/logger.service';
 
 /**
@@ -77,50 +76,6 @@ export class ExtensionsRegistrar implements OnModuleInit {
 
     this.pluginLoader.registerBuiltInPlugin(translationManifest, new TranslationPlugin());
     this.logger.log('Translation plugin registered (disabled)');
-
-    const agentwaManifest: PluginManifest = {
-      id: 'agentwa',
-      name: 'AgentWA (AI Customer Service)',
-      version: '0.1.0',
-      type: PluginType.EXTENSION,
-      description:
-        'AI customer-service auto-reply (BYOT LLM via APImart), grounded in a per-brand knowledge profile. Disabled by default.',
-      main: 'index.ts',
-      permissions: ['messages:send'],
-      sessions: ['*'],
-      configSchema: {
-        type: 'object',
-        properties: {
-          provider: { type: 'string', title: 'LLM provider', enum: ['apimart'], default: 'apimart' },
-          apiBaseUrl: { type: 'string', title: 'LLM base URL', default: 'https://api.apimart.ai/v1' },
-          apiKey: { type: 'string', title: 'LLM API key', secret: true, required: true },
-          model: { type: 'string', title: 'Model', default: 'gpt-4o-mini' },
-          language: { type: 'string', title: 'Reply language', default: 'id' },
-          perChatCooldownSec: { type: 'number', title: 'Per-chat cooldown (sec)', default: 30 },
-          fallbackMessage: {
-            type: 'string',
-            title: 'Fallback message (when not confident)',
-            default: 'Mohon tunggu ya kak, CS kami akan segera membantu.',
-          },
-          defaultBrandName: { type: 'string', title: 'Default brand name', default: 'Toko' },
-          defaultSystemPersona: {
-            type: 'string',
-            title: 'Default persona',
-            default: 'Ramah, singkat, membantu.',
-          },
-          defaultBusinessProfile: { type: 'string', title: 'Default business profile' },
-          defaultFaq: { type: 'string', title: 'Default FAQ / knowledge' },
-          brandProfiles: {
-            type: 'object',
-            title: 'Per-session brand profiles (advanced, JSON)',
-            description:
-              'Map sessionId -> { name, systemPersona, businessProfile, faq, fallbackMessage }. Leave empty to use the default profile for all sessions.',
-          },
-        },
-      },
-    };
-    this.pluginLoader.registerBuiltInPlugin(agentwaManifest, new AgentWaPlugin());
-    this.logger.log('AgentWA plugin registered (disabled)');
   }
 }
 
