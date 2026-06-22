@@ -1,5 +1,5 @@
 import { ChatGateway } from '../core/ports';
-import { PluginMessagingCapability } from '../../../core/plugins';
+import { PluginMessagingCapability } from '../../../../core/plugins';
 
 /** ChatGateway backed by ctx.messages (routes through MessageService → persistence preserved). */
 export class PluginChatGateway implements ChatGateway {
