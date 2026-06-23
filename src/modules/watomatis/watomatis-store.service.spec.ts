@@ -83,4 +83,64 @@ describe('WatomatisStore', () => {
       process.env.WATOMATIS_DATA_DIR = originalDir;
     }
   });
+
+  it('writes apiKey encrypted (enc:v1: prefix) on disk but get() returns plaintext', async () => {
+    const profile: WatomatisProfile = { ...sampleProfile, sessionId: 'enc-test', apiKey: 'sk-plaintext-key' };
+    await store.save(profile);
+
+    // On-disk value must be encrypted
+    const filePath = path.join(TMP_DIR, encodeURIComponent('enc-test') + '.json');
+    const onDisk = JSON.parse(await fs.readFile(filePath, 'utf8')) as WatomatisProfile;
+    expect(onDisk.apiKey).toMatch(/^enc:v1:/);
+    expect(onDisk.apiKey).not.toBe('sk-plaintext-key');
+
+    // get() must return the original plaintext
+    const fetched = await store.get('enc-test');
+    expect(fetched!.apiKey).toBe('sk-plaintext-key');
+  });
+
+  it('encrypts shipping.apiKey on disk and decrypts on get()', async () => {
+    const profile: WatomatisProfile = {
+      ...sampleProfile,
+      sessionId: 'enc-shipping-test',
+      apiKey: 'sk-main-key',
+      shipping: {
+        enabled: true,
+        apiKey: 'shipping-secret-key',
+        originVillageCode: '123',
+        defaultWeightKg: 1,
+      },
+    };
+    await store.save(profile);
+
+    const filePath = path.join(TMP_DIR, encodeURIComponent('enc-shipping-test') + '.json');
+    const onDisk = JSON.parse(await fs.readFile(filePath, 'utf8')) as WatomatisProfile;
+    expect(onDisk.shipping!.apiKey).toMatch(/^enc:v1:/);
+    expect(onDisk.shipping!.apiKey).not.toBe('shipping-secret-key');
+
+    const fetched = await store.get('enc-shipping-test');
+    expect(fetched!.shipping!.apiKey).toBe('shipping-secret-key');
+  });
+
+  it('save() returns plaintext apiKey (not encrypted)', async () => {
+    const profile: WatomatisProfile = { ...sampleProfile, sessionId: 'enc-return-test', apiKey: 'sk-return-check' };
+    const saved = await store.save(profile);
+    expect(saved.apiKey).toBe('sk-return-check');
+  });
+
+  it('legacy plaintext apiKey on disk is returned unchanged by get()', async () => {
+    // Simulate an old profile written without encryption
+    const legacyProfile: WatomatisProfile = {
+      ...sampleProfile,
+      sessionId: 'legacy-session',
+      apiKey: 'legacy-plaintext',
+      updatedAt: new Date().toISOString(),
+    };
+    await fs.mkdir(TMP_DIR, { recursive: true });
+    const filePath = path.join(TMP_DIR, encodeURIComponent('legacy-session') + '.json');
+    await fs.writeFile(filePath, JSON.stringify(legacyProfile, null, 2), 'utf8');
+
+    const fetched = await store.get('legacy-session');
+    expect(fetched!.apiKey).toBe('legacy-plaintext');
+  });
 });
