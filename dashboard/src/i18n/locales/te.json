@@ -723,7 +723,14 @@
     "fallbackMessagePlaceholder": "Message when the bot cannot answer",
     "activateBtn": "Save & activate",
     "activating": "Saving...",
-    "activateSuccess": "Profile saved and activated successfully."
+    "activateSuccess": "Profile saved and activated successfully.",
+    "shippingSection": "Shipping / Cek Ongkir (BYOT)",
+    "shippingApiKeyLabel": "api.co.id API key",
+    "originLabel": "Origin village",
+    "originSearchPlaceholder": "Search village name...",
+    "searchBtn": "Search",
+    "weightLabel": "Default package weight (kg)",
+    "originSelected": "Origin"
   },
   "learning": {
     "title": "Learning",

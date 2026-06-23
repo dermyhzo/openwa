@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, Upload, Loader2, AlertCircle, Zap } from 'lucide-react';
-import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode } from '../services/api';
+import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type VillageItem } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
@@ -44,6 +44,17 @@ export default function AiAgent() {
   const [activateSuccess, setActivateSuccess] = useState<string | null>(null);
   const [activateError, setActivateError] = useState<string | null>(null);
 
+  // Shipping config state
+  const [shippingEnabled, setShippingEnabled] = useState(false);
+  const [shipApiKey, setShipApiKey] = useState('');
+  const [originQuery, setOriginQuery] = useState('');
+  const [originCode, setOriginCode] = useState('');
+  const [originLabel, setOriginLabel] = useState('');
+  const [weightKg, setWeightKg] = useState(1);
+  const [villageResults, setVillageResults] = useState<VillageItem[]>([]);
+  const [searchingVillage, setSearchingVillage] = useState(false);
+  const [villageSearchError, setVillageSearchError] = useState<string | null>(null);
+
   useEffect(() => {
     sessionApi.list().then(list => {
       setSessions(list);
@@ -54,6 +65,21 @@ export default function AiAgent() {
   const handleProviderChange = (p: Provider) => {
     setProvider(p);
     setModel(PROVIDER_DEFAULT_MODEL[p]);
+  };
+
+  const handleSearchVillages = async () => {
+    if (!shipApiKey.trim() || !originQuery.trim()) return;
+    setSearchingVillage(true);
+    setVillageSearchError(null);
+    setVillageResults([]);
+    try {
+      const res = await watomatisApi.searchVillages(shipApiKey.trim(), originQuery.trim());
+      setVillageResults(res.items);
+    } catch (err) {
+      setVillageSearchError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setSearchingVillage(false);
+    }
   };
 
   const handleActivate = async () => {
@@ -72,6 +98,9 @@ export default function AiAgent() {
         fallbackMessage,
         voiceCard: result.voiceCard,
         qna: result.qna,
+        shipping: shippingEnabled
+          ? { enabled: true, apiKey: shipApiKey.trim(), originVillageCode: originCode, defaultWeightKg: Number(weightKg) || 1 }
+          : { enabled: false, apiKey: '', originVillageCode: '', defaultWeightKg: 1 },
       });
       setActivateSuccess(t('aiAgent.activateSuccess'));
     } catch (err) {
@@ -361,6 +390,98 @@ export default function AiAgent() {
                 />
               </div>
 
+              {/* Shipping / Cek Ongkir */}
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={shippingEnabled}
+                    onChange={e => setShippingEnabled(e.target.checked)}
+                  />
+                  {t('aiAgent.shippingSection')}
+                </label>
+              </div>
+
+              {shippingEnabled && (
+                <div style={{ borderLeft: '2px solid var(--border-color, #e5e7eb)', paddingLeft: '1rem', marginBottom: '1rem' }}>
+                  <div className="form-group">
+                    <label>{t('aiAgent.shippingApiKeyLabel')}</label>
+                    <input
+                      type="password"
+                      value={shipApiKey}
+                      onChange={e => setShipApiKey(e.target.value)}
+                      placeholder="api.co.id key"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>{t('aiAgent.originLabel')}</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={originQuery}
+                        onChange={e => setOriginQuery(e.target.value)}
+                        placeholder={t('aiAgent.originSearchPlaceholder')}
+                        onKeyDown={e => { if (e.key === 'Enter') void handleSearchVillages(); }}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => void handleSearchVillages()}
+                        disabled={searchingVillage || !shipApiKey.trim() || !originQuery.trim()}
+                        style={{ flexShrink: 0 }}
+                      >
+                        {searchingVillage ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {t('aiAgent.searchBtn')}
+                      </button>
+                    </div>
+
+                    {villageSearchError && (
+                      <small style={{ color: 'var(--color-error, #ef4444)' }}>{villageSearchError}</small>
+                    )}
+
+                    {villageResults.length > 0 && (
+                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '160px', overflowY: 'auto' }}>
+                        {villageResults.map(v => (
+                          <button
+                            key={v.code}
+                            type="button"
+                            onClick={() => {
+                              setOriginCode(v.code);
+                              setOriginLabel(`${v.name}, ${v.regency}`);
+                              setVillageResults([]);
+                              setOriginQuery('');
+                            }}
+                            style={{ textAlign: 'left', background: 'var(--bg-secondary, #f9fafb)', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '4px', padding: '0.35rem 0.6rem', cursor: 'pointer', fontSize: '0.875rem' }}
+                          >
+                            {v.name}, {v.regency}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {originCode && (
+                      <small style={{ color: 'var(--color-success, #22c55e)', marginTop: '0.25rem', display: 'block' }}>
+                        {t('aiAgent.originSelected')}: {originLabel} ({originCode})
+                      </small>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>{t('aiAgent.weightLabel')}</label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={weightKg}
+                      onChange={e => setWeightKg(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
               {activateSuccess && (
                 <div className="ai-agent-activate-success">
                   {activateSuccess}
@@ -378,7 +499,7 @@ export default function AiAgent() {
                 <button
                   className="btn-primary"
                   onClick={() => void handleActivate()}
-                  disabled={activating || !activateSessionId}
+                  disabled={activating || !activateSessionId || (shippingEnabled && (!shipApiKey.trim() || !originCode))}
                 >
                   {activating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                   {activating ? t('aiAgent.activating') : t('aiAgent.activateBtn')}

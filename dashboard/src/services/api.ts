@@ -687,6 +687,20 @@ export interface SaveProfileBody {
   fallbackMessage: string;
   voiceCard: LearnVoiceCard;
   qna: LearnQna[];
+  shipping?: {
+    enabled: boolean;
+    apiKey: string;
+    originVillageCode: string;
+    defaultWeightKg: number;
+  };
+}
+
+export interface VillageItem {
+  code: string;
+  name: string;
+  regency: string;
+  province: string;
+  courierSupport: boolean;
 }
 
 export interface Draft {
@@ -743,6 +757,11 @@ export const watomatisApi = {
     request<RecordingsResponse>(`/watomatis/recordings/${sessionId}`),
   consolidateRecordings: (sessionId: string) =>
     request<ConsolidateResponse>(`/watomatis/recordings/${sessionId}/consolidate`, { method: 'POST' }),
+  searchVillages: (apiKey: string, query: string) =>
+    request<{ items: VillageItem[] }>('/watomatis/villages/search', {
+      method: 'POST',
+      body: JSON.stringify({ apiKey, query }),
+    }),
 };
 
 // =============================================================================
