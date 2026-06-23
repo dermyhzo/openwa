@@ -7,7 +7,8 @@ import { WatomatisDraftStore } from './watomatis-drafts.service';
 import { ApimartChat } from './learning/llm-chat';
 import { buildReplyPrompt } from './reply-prompt';
 
-const COOLDOWN_MS = 30_000;
+// Small de-dup window so a burst of messages doesn't double-fire; still answers normal follow-ups.
+const COOLDOWN_MS = 1_500;
 
 /**
  * The Watomatis agent at runtime: listens on inbound messages and, for sessions that have a saved
@@ -76,8 +77,15 @@ export class WatomatisRuntime implements OnModuleInit {
       baseUrl: profile.apiBaseUrl || 'https://api.apimart.ai/v1',
       apiKey: profile.apiKey,
       model: profile.model || 'gpt-4o-mini',
+      temperature: 0.7,
     });
-    const sys = buildReplyPrompt(profile.voiceCard?.summary ?? '', profile.qna ?? []);
+    const nowText = new Date().toLocaleString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const sys = buildReplyPrompt(profile.voiceCard?.summary ?? '', profile.qna ?? [], nowText);
     const res = await llm.json(sys, userText);
     return {
       reply: typeof res.reply === 'string' ? res.reply : '',

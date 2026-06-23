@@ -7,6 +7,8 @@ export interface ApimartChatConfig {
   baseUrl: string;
   apiKey: string;
   model: string;
+  /** Sampling temperature. Low (~0.2) for analysis/extraction, higher (~0.7) for natural replies. */
+  temperature?: number;
 }
 
 /** Tolerant JSON parse — accepts a raw object or one wrapped in prose / ```json fences. */
@@ -40,7 +42,7 @@ export class ApimartChat implements ChatLlm {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userText },
         ],
-        temperature: 0.2,
+        temperature: this.cfg.temperature ?? 0.2,
         stream: false,
       }),
     });
