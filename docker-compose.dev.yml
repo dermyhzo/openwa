@@ -59,6 +59,9 @@ services:
       - WWEBJS_AUTH_TIMEOUT_MS=${WWEBJS_AUTH_TIMEOUT_MS:-}
       - STORAGE_TYPE=local
       - STORAGE_LOCAL_PATH=/app/data/media
+      # Installed plugins must live on a WRITABLE, persistent path. The rootfs is read_only and the
+      # default ./plugins (=/app/plugins) is read-only, so dashboard plugin install fails (ENOENT).
+      - PLUGINS_DIR=/app/data/installed-plugins
       - WEBHOOK_TIMEOUT=10000
       - WEBHOOK_MAX_RETRIES=3
       - QUEUE_ENABLED=false
