@@ -48,6 +48,11 @@ export class WatomatisDraftStore {
     return sessionId ? all.filter(d => d.sessionId === sessionId) : all;
   }
 
+  async get(id: string): Promise<WatomatisDraft | null> {
+    const all = await this.readAll();
+    return all.find(d => d.id === id) ?? null;
+  }
+
   async remove(id: string): Promise<void> {
     await this.writeAll((await this.readAll()).filter(d => d.id !== id));
   }

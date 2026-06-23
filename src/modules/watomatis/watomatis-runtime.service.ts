@@ -55,10 +55,12 @@ export class WatomatisRuntime implements OnModuleInit {
       const { reply, canAnswer } = await this.generateReply(profile, m.body);
 
       if (profile.mode === 'auto') {
-        if (canAnswer && reply) {
-          await this.messages.sendText(sessionId, { chatId: m.chatId, text: reply });
-          this.lastReplyAt.set(m.chatId, Date.now());
-        }
+        const text =
+          canAnswer && reply
+            ? reply
+            : profile.fallbackMessage?.trim() || 'Mohon tunggu ya kak, CS kami akan segera membantu.';
+        await this.messages.sendText(sessionId, { chatId: m.chatId, text });
+        this.lastReplyAt.set(m.chatId, Date.now());
       } else {
         await this.drafts.append({ sessionId, chatId: m.chatId, incoming: m.body, reply, canAnswer });
       }

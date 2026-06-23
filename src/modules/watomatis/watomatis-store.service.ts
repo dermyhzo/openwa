@@ -10,6 +10,7 @@ export interface WatomatisProfile {
   model: string;
   apiBaseUrl: string;
   mode: 'off' | 'supervised' | 'auto';
+  fallbackMessage: string;
   voiceCard: VoiceCard | null;
   qna: MinedQna[];
   updatedAt: string;
