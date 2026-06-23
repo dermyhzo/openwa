@@ -1,0 +1,86 @@
+import * as os from 'os';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
+
+const TMP_DIR = path.join(os.tmpdir(), `watomatis-test-${Date.now()}`);
+
+beforeAll(() => {
+  process.env.WATOMATIS_DATA_DIR = TMP_DIR;
+});
+
+afterAll(async () => {
+  await fs.rm(TMP_DIR, { recursive: true, force: true });
+});
+
+describe('WatomatisStore', () => {
+  let store: WatomatisStore;
+
+  beforeEach(() => {
+    store = new WatomatisStore();
+  });
+
+  const sampleProfile: WatomatisProfile = {
+    sessionId: 'session-abc',
+    provider: 'openai',
+    apiKey: 'sk-test-key',
+    model: 'gpt-4o-mini',
+    apiBaseUrl: 'https://api.apimart.ai/v1',
+    mode: 'supervised',
+    voiceCard: {
+      tone: 'friendly',
+      formality: 'casual',
+      emojiUsage: 'moderate',
+      greetings: ['Hi!', 'Hey'],
+      closings: ['Cheers', 'Thanks'],
+      quirks: ['uses ellipsis often'],
+      summary: 'A friendly casual speaker.',
+      avgReplyChars: 120,
+    },
+    qna: [
+      { question: 'What is your name?', answer: 'I am Watomatis.' },
+    ],
+    updatedAt: '',
+  };
+
+  it('saves a profile and gets it back (roundtrip)', async () => {
+    const saved = await store.save(sampleProfile);
+
+    expect(saved.sessionId).toBe('session-abc');
+    expect(saved.updatedAt).toBeTruthy();
+    expect(saved.voiceCard?.tone).toBe('friendly');
+    expect(saved.qna).toHaveLength(1);
+    expect(saved.qna[0].question).toBe('What is your name?');
+
+    const fetched = await store.get('session-abc');
+    expect(fetched).not.toBeNull();
+    expect(fetched!.sessionId).toBe('session-abc');
+    expect(fetched!.voiceCard?.formality).toBe('casual');
+    expect(fetched!.qna[0].answer).toBe('I am Watomatis.');
+    expect(fetched!.updatedAt).toBe(saved.updatedAt);
+  });
+
+  it('lists saved session ids', async () => {
+    await store.save({ ...sampleProfile, sessionId: 'session-xyz' });
+
+    const ids = await store.list();
+    expect(ids).toContain('session-abc');
+    expect(ids).toContain('session-xyz');
+  });
+
+  it('returns null for an unknown session', async () => {
+    const result = await store.get('no-such-session');
+    expect(result).toBeNull();
+  });
+
+  it('returns empty array for list when dir is missing', async () => {
+    const originalDir = process.env.WATOMATIS_DATA_DIR;
+    process.env.WATOMATIS_DATA_DIR = path.join(os.tmpdir(), `watomatis-nonexistent-${Date.now()}`);
+    try {
+      const result = await store.list();
+      expect(result).toEqual([]);
+    } finally {
+      process.env.WATOMATIS_DATA_DIR = originalDir;
+    }
+  });
+});
