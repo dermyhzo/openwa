@@ -351,6 +351,17 @@
   width: 40%;
 }
 
+.ai-agent-activate-success {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  color: #16a34a;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .ai-agent-page {
     padding: 1rem;

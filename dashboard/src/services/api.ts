@@ -675,6 +675,30 @@ export interface LearnResult {
   qna: LearnQna[];
 }
 
+export type WatomatisMode = 'off' | 'supervised' | 'auto';
+
+export interface SaveProfileBody {
+  sessionId: string;
+  provider: string;
+  apiKey: string;
+  model: string;
+  apiBaseUrl: string;
+  mode: WatomatisMode;
+  fallbackMessage: string;
+  voiceCard: LearnVoiceCard;
+  qna: LearnQna[];
+}
+
+export interface Draft {
+  id: string;
+  sessionId: string;
+  chatId: string;
+  incoming: string;
+  reply: string;
+  canAnswer: boolean;
+  createdAt: string;
+}
+
 export const watomatisApi = {
   learnFromChat: (
     file: File,
@@ -687,6 +711,18 @@ export const watomatisApi = {
     if (opts.apiBaseUrl) form.append('apiBaseUrl', opts.apiBaseUrl);
     return request<LearnResult>('/watomatis/learn', { method: 'POST', body: form });
   },
+  saveProfile: (body: SaveProfileBody) =>
+    request<unknown>('/watomatis/profile', { method: 'POST', body: JSON.stringify(body) }),
+  getProfile: (sessionId: string) =>
+    request<unknown>(`/watomatis/profile/${sessionId}`),
+  listDrafts: (sessionId?: string) => {
+    const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
+    return request<Draft[]>(`/watomatis/drafts${query}`);
+  },
+  approveDraft: (id: string, text?: string) =>
+    request<unknown>(`/watomatis/drafts/${id}/approve`, { method: 'POST', body: JSON.stringify({ text }) }),
+  dismissDraft: (id: string) =>
+    request<void>(`/watomatis/drafts/${id}`, { method: 'DELETE' }),
 };
 
 // =============================================================================

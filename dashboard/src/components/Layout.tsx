@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Languages,
   Bot,
+  Inbox,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -45,6 +46,7 @@ const allNavItems = [
   { to: '/infrastructure', icon: Server, key: 'infrastructure' as const, adminOnly: true },
   { to: '/plugins', icon: Puzzle, key: 'plugins' as const, adminOnly: true },
   { to: '/ai-agent', icon: Bot, key: 'aiAgent' as const, adminOnly: false },
+  { to: '/drafts', icon: Inbox, key: 'drafts' as const, adminOnly: false },
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
 ];
 

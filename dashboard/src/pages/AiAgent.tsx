@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Upload, Loader2, AlertCircle } from 'lucide-react';
-import { watomatisApi, type LearnResult } from '../services/api';
+import { Bot, Upload, Loader2, AlertCircle, Zap } from 'lucide-react';
+import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
@@ -35,9 +35,50 @@ export default function AiAgent() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LearnResult | null>(null);
 
+  // Activate card state
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activateSessionId, setActivateSessionId] = useState('');
+  const [activateMode, setActivateMode] = useState<WatomatisMode>('supervised');
+  const [fallbackMessage, setFallbackMessage] = useState('Mohon tunggu ya kak, CS kami akan segera membantu.');
+  const [activating, setActivating] = useState(false);
+  const [activateSuccess, setActivateSuccess] = useState<string | null>(null);
+  const [activateError, setActivateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    sessionApi.list().then(list => {
+      setSessions(list);
+      if (list.length > 0) setActivateSessionId(list[0].id);
+    }).catch(() => {});
+  }, []);
+
   const handleProviderChange = (p: Provider) => {
     setProvider(p);
     setModel(PROVIDER_DEFAULT_MODEL[p]);
+  };
+
+  const handleActivate = async () => {
+    if (!result || !activateSessionId) return;
+    setActivating(true);
+    setActivateSuccess(null);
+    setActivateError(null);
+    try {
+      await watomatisApi.saveProfile({
+        sessionId: activateSessionId,
+        provider,
+        apiKey: apiKey.trim(),
+        model: model.trim(),
+        apiBaseUrl: apiBaseUrl.trim() || PROVIDER_BASE[provider],
+        mode: activateMode,
+        fallbackMessage,
+        voiceCard: result.voiceCard,
+        qna: result.qna,
+      });
+      setActivateSuccess(t('aiAgent.activateSuccess'));
+    } catch (err) {
+      setActivateError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -273,6 +314,77 @@ export default function AiAgent() {
                 </div>
               </div>
             )}
+
+            {/* Activate Card */}
+            <div className="ai-agent-card">
+              <h2 className="ai-agent-section-title">
+                <Zap size={18} />
+                {t('aiAgent.activateTitle')}
+              </h2>
+
+              <div className="form-group">
+                <label>{t('aiAgent.activateSessionLabel')}</label>
+                <select
+                  value={activateSessionId}
+                  onChange={e => setActivateSessionId(e.target.value)}
+                >
+                  {sessions.length === 0 && (
+                    <option value="">{t('aiAgent.activateNoSessions')}</option>
+                  )}
+                  {sessions.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.phone ?? t('aiAgent.activateNoPhone')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>{t('aiAgent.activateModeLabel')}</label>
+                <select
+                  value={activateMode}
+                  onChange={e => setActivateMode(e.target.value as WatomatisMode)}
+                >
+                  <option value="off">{t('aiAgent.modeOff')}</option>
+                  <option value="supervised">{t('aiAgent.modeSupervised')}</option>
+                  <option value="auto">{t('aiAgent.modeAuto')}</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>{t('aiAgent.fallbackMessageLabel')}</label>
+                <input
+                  type="text"
+                  value={fallbackMessage}
+                  onChange={e => setFallbackMessage(e.target.value)}
+                  placeholder={t('aiAgent.fallbackMessagePlaceholder')}
+                />
+              </div>
+
+              {activateSuccess && (
+                <div className="ai-agent-activate-success">
+                  {activateSuccess}
+                </div>
+              )}
+
+              {activateError && (
+                <div className="error-banner" style={{ marginBottom: '1rem' }}>
+                  <AlertCircle size={18} />
+                  <span className="error-banner-text">{activateError}</span>
+                </div>
+              )}
+
+              <div className="ai-agent-actions">
+                <button
+                  className="btn-primary"
+                  onClick={() => void handleActivate()}
+                  disabled={activating || !activateSessionId}
+                >
+                  {activating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                  {activating ? t('aiAgent.activating') : t('aiAgent.activateBtn')}
+                </button>
+              </div>
+            </div>
           </>
         )}
       </div>

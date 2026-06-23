@@ -75,6 +75,7 @@
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
     "aiAgent": "AI Agent",
+    "drafts": "Drafts",
     "logs": "Logs"
   },
   "chats": {
@@ -710,6 +711,29 @@
     "qnaQuestion": "Question",
     "qnaAnswer": "Answer",
     "providerLabel": "Provider",
-    "getWanalysis": "Get the WAnalysis extension"
+    "getWanalysis": "Get the WAnalysis extension",
+    "activateTitle": "Activate",
+    "activateSessionLabel": "WhatsApp session",
+    "activateNoSessions": "No sessions available",
+    "activateNoPhone": "no phone",
+    "activateModeLabel": "Mode",
+    "modeOff": "Off",
+    "modeSupervised": "Supervised (review drafts first)",
+    "modeAuto": "Auto (reply automatically)",
+    "fallbackMessageLabel": "Fallback message",
+    "fallbackMessagePlaceholder": "Message when the bot cannot answer",
+    "activateBtn": "Save & activate",
+    "activating": "Saving...",
+    "activateSuccess": "Profile saved and activated successfully."
+  },
+  "drafts": {
+    "title": "Drafts",
+    "subtitle": "Review and send bot-suggested replies",
+    "emptyTitle": "No drafts",
+    "emptyDesc": "When the bot suggests a reply in supervised mode, it will appear here.",
+    "customerMessage": "Customer message",
+    "suggestedReply": "Suggested reply",
+    "sendBtn": "Send",
+    "dismissBtn": "Dismiss"
   }
 }
