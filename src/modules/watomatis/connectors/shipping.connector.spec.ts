@@ -89,7 +89,7 @@ describe('ShippingConnector', () => {
         return { ok: true, json: async () => body };
       }) as typeof fetch;
 
-      const result = await connector.cekOngkir(ORIGIN, 'Contoh', 1, API_KEY);
+      const result = await connector.cekOngkir(ORIGIN, 'Contoh', '', 1, API_KEY);
 
       expect('error' in result).toBe(false);
       const r = result as { destinationName: string; quotes: { courierName: string; price: number }[] };
@@ -102,10 +102,10 @@ describe('ShippingConnector', () => {
     it('(d) returns error when searchVillage returns empty array', async () => {
       global.fetch = mockFetch({ data: [] }) as typeof fetch;
 
-      const result = await connector.cekOngkir(ORIGIN, 'NonexistentPlace', 1, API_KEY);
+      const result = await connector.cekOngkir(ORIGIN, 'NonexistentPlace', '', 1, API_KEY);
 
       expect('error' in result).toBe(true);
-      expect((result as { error: string }).error).toBe('Tujuan tidak ditemukan');
+      expect((result as { error: string }).error).toContain('tidak ditemukan');
     });
   });
 });

@@ -6,6 +6,7 @@ import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
 import { WatomatisDraftStore } from './watomatis-drafts.service';
 import { ApimartChat } from './learning/llm-chat';
 import { buildReplyPrompt } from './reply-prompt';
+import { ShippingConnector } from './connectors/shipping.connector';
 
 // Small de-dup window so a burst of messages doesn't double-fire; still answers normal follow-ups.
 const COOLDOWN_MS = 1_500;
@@ -25,6 +26,7 @@ export class WatomatisRuntime implements OnModuleInit {
     private readonly store: WatomatisStore,
     private readonly drafts: WatomatisDraftStore,
     private readonly messages: MessageService,
+    private readonly shipping: ShippingConnector,
   ) {}
 
   onModuleInit(): void {
@@ -87,11 +89,45 @@ export class WatomatisRuntime implements OnModuleInit {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const sys = buildReplyPrompt(profile.voiceCard?.summary ?? '', profile.qna ?? [], nowText);
-    const res = await llm.json(sys, userText);
-    return {
-      reply: typeof res.reply === 'string' ? res.reply : '',
-      canAnswer: res.canAnswer === true,
-    };
+    const persona = profile.voiceCard?.summary ?? '';
+    const qna = profile.qna ?? [];
+    const sh = profile.shipping;
+    const shippingEnabled = !!(sh?.enabled && sh.apiKey && sh.originVillageCode);
+
+    const res = await llm.json(buildReplyPrompt(persona, qna, nowText, { detectOngkir: shippingEnabled }), userText);
+    let reply = typeof res.reply === 'string' ? res.reply : '';
+    let canAnswer = res.canAnswer === true;
+
+    if (shippingEnabled && sh) {
+      const o = res.ongkir as
+        | { needed?: boolean; destination?: string; city?: string; weight?: number | null }
+        | undefined;
+      if (o?.needed && o.destination && o.city) {
+        const weight = typeof o.weight === 'number' && o.weight > 0 ? o.weight : sh.defaultWeightKg || 1;
+        const result = await this.shipping.cekOngkir(
+          sh.originVillageCode,
+          String(o.destination),
+          String(o.city),
+          weight,
+          sh.apiKey,
+        );
+        if ('quotes' in result && result.quotes.length > 0) {
+          const factsList = result.quotes
+            .map(q => `- ${q.courierName}: Rp${q.price.toLocaleString('id-ID')}${q.estimation ? ` (estimasi ${q.estimation})` : ''}`)
+            .join('\n');
+          const facts = `Tujuan: ${result.destinationName} · berat ${weight} kg\n${factsList}`;
+          const res2 = await llm.json(buildReplyPrompt(persona, qna, nowText, { shippingFacts: facts }), userText);
+          if (typeof res2.reply === 'string' && res2.reply) {
+            reply = res2.reply;
+            canAnswer = true;
+          }
+        } else if ('error' in result) {
+          reply = `Maaf kak, ongkir ke ${o.destination}, ${o.city} belum bisa saya hitung otomatis. Boleh info kecamatan/kelurahan + kotanya lebih lengkap ya? 🙏`;
+          canAnswer = true;
+        }
+      }
+    }
+
+    return { reply, canAnswer };
   }
 }
