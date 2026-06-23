@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, Upload, Loader2, AlertCircle } from 'lucide-react';
-import { watomatisfApi, type LearnResult } from '../services/api';
+import { watomatisApi, type LearnResult } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
@@ -25,7 +25,7 @@ export default function AiAgent() {
     setError(null);
     setResult(null);
     try {
-      const data = await watomatisfApi.learnFromChat(file, {
+      const data = await watomatisApi.learnFromChat(file, {
         apiKey: apiKey.trim(),
         model: model.trim() || undefined,
         apiBaseUrl: apiBaseUrl.trim() || undefined,

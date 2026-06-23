@@ -675,7 +675,7 @@ export interface LearnResult {
   qna: LearnQna[];
 }
 
-export const watomatisfApi = {
+export const watomatisApi = {
   learnFromChat: (
     file: File,
     opts: { apiKey: string; model?: string; apiBaseUrl?: string },
