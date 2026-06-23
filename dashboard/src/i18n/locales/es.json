@@ -78,7 +78,8 @@
     "templates": "Plantillas",
     "aiAgent": "AI Agent",
     "drafts": "Drafts",
-    "learning": "Learning"
+    "learning": "Learning",
+    "license": "License"
   },
   "chats": {
     "subtitle": "Envía y responde mensajes de WhatsApp en tiempo real",
@@ -765,6 +766,18 @@
     "step3Desc": "Enable the agent on a session in supervised or auto mode.",
     "step4Title": "Subscription / License",
     "step4Desc": "Activate your license to unlock all features."
+  },
+  "license": {
+    "title": "License",
+    "subtitle": "Manage your subscription and activate your license",
+    "statusLabel": "Subscription status",
+    "active": "Active",
+    "validUntil": "Valid until {{date}}",
+    "inactive": "Inactive — choose a plan below to subscribe.",
+    "emailLabel": "Email (optional, for payment receipt)",
+    "emailPlaceholder": "you@example.com",
+    "payBtn": "Pay via Duitku",
+    "days": "days"
   },
   "drafts": {
     "title": "Drafts",

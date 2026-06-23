@@ -25,6 +25,7 @@ import {
   Inbox,
   GraduationCap,
   Rocket,
+  CreditCard,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -52,6 +53,7 @@ const allNavItems = [
   { to: '/drafts', icon: Inbox, key: 'drafts' as const, adminOnly: false },
   { to: '/learning', icon: GraduationCap, key: 'learning' as const, adminOnly: false },
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
+  { to: '/license', icon: CreditCard, key: 'license' as const, adminOnly: false },
 ];
 
 const themeIcons = { light: Sun, dark: Moon, system: Monitor };

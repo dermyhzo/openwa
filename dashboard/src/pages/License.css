@@ -1,0 +1,217 @@
+.license-page {
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.license-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 800px;
+}
+
+.license-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  padding: 2rem 0;
+}
+
+/* Status card */
+.license-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.license-status-card--active {
+  border-color: #22c55e;
+  background: color-mix(in srgb, #22c55e 6%, var(--bg-white));
+}
+
+.license-status-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.license-status-card--active .license-status-icon {
+  color: #22c55e;
+}
+
+.license-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.license-status-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.license-status-active {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.license-check-icon {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.license-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.license-badge--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.license-valid-until {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.license-current-plan {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.license-status-inactive {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+/* Email row */
+.license-email-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.license-email-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.license-email-input {
+  padding: 0.5625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  max-width: 360px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.license-email-input:focus {
+  outline: none;
+  border-color: var(--primary, #25d366);
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+/* Plans grid */
+.license-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.license-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.license-plan-card:hover {
+  border-color: var(--primary, #25d366);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.license-plan-header {
+  margin-bottom: 0.25rem;
+}
+
+.license-plan-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.license-plan-price {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.license-plan-duration {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.license-pay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5625rem 1.125rem;
+  background: var(--primary, #25d366);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+  width: 100%;
+}
+
+.license-pay-btn:hover:not(:disabled) {
+  filter: brightness(0.93);
+}
+
+.license-pay-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .license-page {
+    padding: 1rem;
+  }
+
+  .license-plans {
+    grid-template-columns: 1fr;
+  }
+}

@@ -24,6 +24,7 @@ const AiAgent = lazy(() => import('./pages/AiAgent'));
 const Drafts = lazy(() => import('./pages/Drafts'));
 const Learning = lazy(() => import('./pages/Learning'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
+const License = lazy(() => import('./pages/License'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,6 +121,7 @@ function AppContent() {
             <Route path="drafts" element={<Drafts />} />
             <Route path="learning" element={<Learning />} />
             <Route path="get-started" element={<Onboarding />} />
+            <Route path="license" element={<License />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

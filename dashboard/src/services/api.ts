@@ -767,6 +767,33 @@ export const watomatisApi = {
 };
 
 // =============================================================================
+// License API
+// =============================================================================
+
+export interface LicensePlan {
+  label: string;
+  price: number;
+  durationDays: number;
+}
+
+export interface LicenseStatus {
+  plan: string | null;
+  status: 'inactive' | 'active';
+  validUntil: string | null;
+  active: boolean;
+  plans: Record<string, LicensePlan>;
+}
+
+export const licenseApi = {
+  getStatus: () => request<LicenseStatus>('/license'),
+  pay: (plan: string, email?: string) =>
+    request<{ paymentUrl: string }>('/license/pay', {
+      method: 'POST',
+      body: JSON.stringify({ plan, ...(email ? { email } : {}) }),
+    }),
+};
+
+// =============================================================================
 // Plugins API
 // =============================================================================
 
