@@ -17,9 +17,12 @@ import { WatomatisService, LearnResult } from './watomatis.service';
 import { WatomatisStore } from './watomatis-store.service';
 import type { WatomatisProfile } from './watomatis-store.service';
 import { WatomatisDraftStore, WatomatisDraft } from './watomatis-drafts.service';
+import { WatomatisRecordingStore, RecordedQna } from './watomatis-recording-store.service';
 import { MessageService } from '../message/message.service';
 import { RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { ApimartChat } from './learning/llm-chat';
+import type { MinedQna } from './learning/types';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -35,6 +38,7 @@ export class WatomatisController {
     private readonly store: WatomatisStore,
     private readonly draftStore: WatomatisDraftStore,
     private readonly messages: MessageService,
+    private readonly recordingStore: WatomatisRecordingStore,
   ) {}
 
   @Post('learn')
@@ -133,5 +137,64 @@ export class WatomatisController {
   async dismissDraft(@Param('id') id: string): Promise<{ success: true }> {
     await this.draftStore.remove(id);
     return { success: true };
+  }
+
+  @Get('recordings/:sessionId')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'List recorded live Q&A pairs for a session' })
+  @ApiResponse({ status: 200, description: 'Recorded Q&A count and items' })
+  async listRecordings(
+    @Param('sessionId') sessionId: string,
+  ): Promise<{ count: number; items: RecordedQna[] }> {
+    const items = await this.recordingStore.list(sessionId);
+    return { count: items.length, items };
+  }
+
+  @Post('recordings/:sessionId/consolidate')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Merge recorded Q&A into the agent knowledge base via LLM' })
+  @ApiResponse({ status: 201, description: 'Updated Q&A list' })
+  @ApiResponse({ status: 404, description: 'Profile not found' })
+  async consolidate(
+    @Param('sessionId') sessionId: string,
+  ): Promise<{ updated: number; qna: MinedQna[] }> {
+    const profile = await this.store.get(sessionId);
+    if (!profile) throw new NotFoundException(`No profile for session ${sessionId}`);
+
+    const recordings = await this.recordingStore.list(sessionId);
+    if (recordings.length === 0) {
+      return { updated: 0, qna: profile.qna };
+    }
+
+    const llm = new ApimartChat({
+      baseUrl: profile.apiBaseUrl || 'https://api.apimart.ai/v1',
+      apiKey: profile.apiKey,
+      model: profile.model || 'gpt-4o-mini',
+    });
+
+    const system = `You are a knowledge-base editor. Given EXISTING Q&A and NEW real customer Q&A pairs recorded from live chats, return a single cleaned, deduplicated Q&A list as JSON: {"qna":[{"question":"...","answer":"..."}]}. Rules: merge duplicates, prefer the more complete answer, drop pure chit-chat or greetings that carry no useful information. Return ONLY the JSON object, no prose.`;
+
+    const existingJson = JSON.stringify(profile.qna ?? []);
+    const newPairs = recordings.slice(0, 80);
+    const newJson = JSON.stringify(newPairs.map(r => ({ question: r.question, answer: r.answer })));
+    const userText = `EXISTING:\n${existingJson.slice(0, 4000)}\n\nNEW (from live chats):\n${newJson.slice(0, 4000)}`;
+
+    const result = await llm.json(system, userText);
+
+    const merged = result.qna;
+    if (!Array.isArray(merged)) {
+      throw new BadRequestException('LLM returned unexpected format — no qna array');
+    }
+    const validated = (merged as unknown[]).filter(
+      (item): item is MinedQna =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as Record<string, unknown>).question === 'string' &&
+        typeof (item as Record<string, unknown>).answer === 'string',
+    );
+
+    profile.qna = validated;
+    await this.store.save(profile);
+    return { updated: profile.qna.length, qna: profile.qna };
   }
 }
