@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Delete,
   Body,
   Param,
@@ -24,6 +25,8 @@ import { ApiKeyRole } from '../auth/entities/api-key.entity';
 import { ApimartChat } from './learning/llm-chat';
 import type { MinedQna } from './learning/types';
 import { ShippingConnector } from './connectors/shipping.connector';
+import { WatomatisSettingsStore } from './watomatis-settings-store.service';
+import type { WatomatisSettings } from './watomatis-settings-store.service';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 const READINESS_MIN_RECORDINGS = 20;
@@ -42,6 +45,7 @@ export class WatomatisController {
     private readonly messages: MessageService,
     private readonly recordingStore: WatomatisRecordingStore,
     private readonly shippingConnector: ShippingConnector,
+    private readonly settingsStore: WatomatisSettingsStore,
   ) {}
 
   @Post('learn')
@@ -264,5 +268,21 @@ export class WatomatisController {
     profile.qna = validated;
     await this.store.save(profile);
     return { updated: profile.qna.length, qna: profile.qna };
+  }
+
+  @Get('settings')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Get global Watomatis settings (shipping config shared across all sessions)' })
+  @ApiResponse({ status: 200, description: 'Global settings with plaintext apiKey' })
+  async getSettings(): Promise<WatomatisSettings> {
+    return this.settingsStore.get();
+  }
+
+  @Put('settings')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Save global Watomatis settings (shipping config shared across all sessions)' })
+  @ApiResponse({ status: 200, description: 'Saved settings with plaintext apiKey' })
+  async saveSettings(@Body() body: WatomatisSettings): Promise<WatomatisSettings> {
+    return this.settingsStore.save(body);
   }
 }

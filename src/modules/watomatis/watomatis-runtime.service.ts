@@ -3,6 +3,7 @@ import { HookManager, HookContext, HookResult } from '../../core/hooks';
 import { IncomingMessage } from '../../engine/interfaces/whatsapp-engine.interface';
 import { MessageService } from '../message/message.service';
 import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
+import { WatomatisSettingsStore } from './watomatis-settings-store.service';
 import { WatomatisDraftStore } from './watomatis-drafts.service';
 import { ApimartChat } from './learning/llm-chat';
 import { buildReplyPrompt } from './reply-prompt';
@@ -33,6 +34,7 @@ export class WatomatisRuntime implements OnModuleInit {
     private readonly drafts: WatomatisDraftStore,
     private readonly messages: MessageService,
     private readonly shipping: ShippingConnector,
+    private readonly settings: WatomatisSettingsStore,
   ) {}
 
   onModuleInit(): void {
@@ -137,8 +139,10 @@ export class WatomatisRuntime implements OnModuleInit {
     });
     const persona = profile.voiceCard?.summary ?? '';
     const qna = profile.qna ?? [];
-    const sh = profile.shipping;
-    const shippingEnabled = !!(sh?.enabled && sh.apiKey && sh.originVillageCode);
+
+    const settings = await this.settings.get();
+    const sh = settings.shipping;
+    const shippingEnabled = !!(sh.enabled && sh.apiKey && sh.originVillageCode);
 
     const knowledgeOpts = {
       brandKnowledge: profile.brandKnowledge,
@@ -148,7 +152,7 @@ export class WatomatisRuntime implements OnModuleInit {
     let reply = typeof res.reply === 'string' ? res.reply : '';
     let canAnswer = res.canAnswer === true;
 
-    if (shippingEnabled && sh) {
+    if (shippingEnabled) {
       const o = res.ongkir as
         | { needed?: boolean; destination?: string; city?: string; weight?: number | null }
         | undefined;
