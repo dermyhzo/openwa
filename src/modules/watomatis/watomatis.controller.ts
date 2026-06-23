@@ -23,6 +23,7 @@ import { RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
 import { ApimartChat } from './learning/llm-chat';
 import type { MinedQna } from './learning/types';
+import { ShippingConnector } from './connectors/shipping.connector';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 
@@ -39,6 +40,7 @@ export class WatomatisController {
     private readonly draftStore: WatomatisDraftStore,
     private readonly messages: MessageService,
     private readonly recordingStore: WatomatisRecordingStore,
+    private readonly shippingConnector: ShippingConnector,
   ) {}
 
   @Post('learn')
@@ -148,6 +150,19 @@ export class WatomatisController {
   ): Promise<{ count: number; items: RecordedQna[] }> {
     const items = await this.recordingStore.list(sessionId);
     return { count: items.length, items };
+  }
+
+  @Post('villages/search')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Search villages by name to get 10-digit village codes' })
+  @ApiResponse({ status: 201, description: 'List of matching villages' })
+  @ApiResponse({ status: 400, description: 'Missing apiKey or query' })
+  async searchVillages(
+    @Body() body: { apiKey?: string; query?: string },
+  ): Promise<{ items: { code: string; name: string }[] }> {
+    if (!body.apiKey) throw new BadRequestException('apiKey is required');
+    if (!body.query) throw new BadRequestException('query is required');
+    return { items: await this.shippingConnector.searchVillage(body.query, body.apiKey) };
   }
 
   @Post('recordings/:sessionId/consolidate')

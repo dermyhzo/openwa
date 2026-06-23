@@ -14,6 +14,12 @@ export interface WatomatisProfile {
   voiceCard: VoiceCard | null;
   qna: MinedQna[];
   updatedAt: string;
+  shipping?: {
+    enabled: boolean;
+    apiKey: string;
+    originVillageCode: string;
+    defaultWeightKg: number;
+  };
 }
 
 @Injectable()
