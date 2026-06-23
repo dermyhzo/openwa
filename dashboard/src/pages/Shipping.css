@@ -1,0 +1,16 @@
+.shipping-inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.shipping-checkbox {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary, #25d366);
+}

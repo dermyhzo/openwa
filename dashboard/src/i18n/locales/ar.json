@@ -79,7 +79,8 @@
     "aiAgent": "AI Agent",
     "drafts": "Drafts",
     "learning": "Learning",
-    "license": "License"
+    "license": "License",
+    "shipping": "Shipping"
   },
   "chats": {
     "subtitle": "أرسل ورد على رسائل واتساب في الوقت الفعلي",
@@ -694,7 +695,8 @@
     "apiBaseUrlLabel": "API Base URL (opsional)",
     "apiBaseUrlHint": "Biarkan kosong untuk memakai default (https://api.apimart.ai/v1)",
     "uploadSection": "Upload Chat Export",
-    "uploadHint": "Export chat via WAnalysis, lalu upload .csv-nya di sini.",
+    "uploadHintPre": "Export chat dengan ",
+    "uploadHintPost": ", lalu upload .csv-nya di sini.",
     "chooseFile": "Pilih file .csv...",
     "learnBtn": "Pelajari dari chat",
     "learning": "Sedang belajar...",
@@ -806,5 +808,18 @@
     "suggestedReply": "Suggested reply",
     "sendBtn": "Send",
     "dismissBtn": "Dismiss"
+  },
+  "shipping": {
+    "title": "Shipping / Cek Ongkir",
+    "subtitle": "Global shipping settings for the AI Agent (api.co.id)",
+    "sectionTitle": "Shipping / Cek Ongkir",
+    "enabledLabel": "Enable shipping / cek ongkir",
+    "apiKeyLabel": "api.co.id API key",
+    "originLabel": "Origin village",
+    "originSearchPlaceholder": "Search village name...",
+    "searchBtn": "Search",
+    "originSelected": "Origin",
+    "weightLabel": "Default package weight (kg)",
+    "saveSuccess": "Shipping settings saved successfully."
   }
 }

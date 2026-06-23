@@ -25,6 +25,7 @@ const Drafts = lazy(() => import('./pages/Drafts'));
 const Learning = lazy(() => import('./pages/Learning'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const License = lazy(() => import('./pages/License'));
+const Shipping = lazy(() => import('./pages/Shipping'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -122,6 +123,7 @@ function AppContent() {
             <Route path="learning" element={<Learning />} />
             <Route path="get-started" element={<Onboarding />} />
             <Route path="license" element={<License />} />
+            <Route path="shipping" element={<Shipping />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

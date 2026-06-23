@@ -79,7 +79,8 @@
     "drafts": "Drafts",
     "learning": "Learning",
     "logs": "Logs",
-    "license": "License"
+    "license": "License",
+    "shipping": "Shipping"
   },
   "chats": {
     "subtitle": "Send and reply to WhatsApp messages in real time",
@@ -694,7 +695,8 @@
     "apiBaseUrlLabel": "API base URL (optional)",
     "apiBaseUrlHint": "Leave empty to use the default (https://api.apimart.ai/v1)",
     "uploadSection": "Upload chat export",
-    "uploadHint": "Export your chat with WAnalysis, then upload the .csv here.",
+    "uploadHintPre": "Export your chat with ",
+    "uploadHintPost": ", then upload the .csv export here.",
     "chooseFile": "Choose a .csv file...",
     "learnBtn": "Learn from chat",
     "learning": "Learning...",
@@ -714,7 +716,6 @@
     "qnaQuestion": "Question",
     "qnaAnswer": "Answer",
     "providerLabel": "Provider",
-    "getWanalysis": "Get the WAnalysis extension",
     "activateTitle": "Activate",
     "activateSessionLabel": "WhatsApp session",
     "activateNoSessions": "No sessions available",
@@ -798,6 +799,19 @@
     "emailPlaceholder": "you@example.com",
     "payBtn": "Pay via Duitku",
     "days": "days"
+  },
+  "shipping": {
+    "title": "Shipping / Cek Ongkir",
+    "subtitle": "Global shipping settings for the AI Agent (api.co.id)",
+    "sectionTitle": "Shipping / Cek Ongkir",
+    "enabledLabel": "Enable shipping / cek ongkir",
+    "apiKeyLabel": "api.co.id API key",
+    "originLabel": "Origin village",
+    "originSearchPlaceholder": "Search village name...",
+    "searchBtn": "Search",
+    "originSelected": "Origin",
+    "weightLabel": "Default package weight (kg)",
+    "saveSuccess": "Shipping settings saved successfully."
   },
   "drafts": {
     "title": "Drafts",

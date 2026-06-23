@@ -753,6 +753,31 @@ export interface ConsolidateResponse {
   qna: { question: string; answer: string }[];
 }
 
+// =============================================================================
+// Watomatis Settings (global shipping config)
+// =============================================================================
+
+export interface WatomatisShippingSettings {
+  enabled: boolean;
+  apiKey: string;
+  originVillageCode: string;
+  originLabel?: string;
+  defaultWeightKg: number;
+}
+
+export interface WatomatisSettings {
+  shipping: WatomatisShippingSettings;
+}
+
+export const watomatisSettingsApi = {
+  getSettings: () => request<WatomatisSettings>('/watomatis/settings'),
+  saveSettings: (body: WatomatisSettings) =>
+    request<WatomatisSettings>('/watomatis/settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+};
+
 export const watomatisApi = {
   learnFromChat: (
     file: File,
