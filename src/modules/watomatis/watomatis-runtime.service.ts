@@ -5,6 +5,7 @@ import { MessageService } from '../message/message.service';
 import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
 import { WatomatisDraftStore } from './watomatis-drafts.service';
 import { ApimartChat } from './learning/llm-chat';
+import { buildReplyPrompt } from './reply-prompt';
 
 const COOLDOWN_MS = 30_000;
 
@@ -76,15 +77,7 @@ export class WatomatisRuntime implements OnModuleInit {
       apiKey: profile.apiKey,
       model: profile.model || 'gpt-4o-mini',
     });
-    const persona = profile.voiceCard?.summary ?? '';
-    const knowledge =
-      (profile.qna ?? []).map(q => `Q: ${q.question}\nA: ${q.answer}`).join('\n') || '(belum ada)';
-    const sys =
-      'Kamu adalah CS WhatsApp. Tiru gaya penulisan ini sepersis mungkin: ' +
-      persona +
-      ' Jawab HANYA berdasarkan KNOWLEDGE di bawah. Jika informasinya tidak ada di KNOWLEDGE, set canAnswer=false dan jangan mengarang. ' +
-      'Balas HANYA JSON: {"reply": string, "canAnswer": boolean}.\n\nKNOWLEDGE:\n' +
-      knowledge;
+    const sys = buildReplyPrompt(profile.voiceCard?.summary ?? '', profile.qna ?? []);
     const res = await llm.json(sys, userText);
     return {
       reply: typeof res.reply === 'string' ? res.reply : '',
