@@ -6,18 +6,39 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
 
+type Provider = 'apimart' | 'openrouter';
+
+const PROVIDER_BASE: Record<Provider, string> = {
+  apimart: 'https://api.apimart.ai/v1',
+  openrouter: 'https://openrouter.ai/api/v1',
+};
+
+const PROVIDER_DEFAULT_MODEL: Record<Provider, string> = {
+  apimart: 'gpt-4o-mini',
+  openrouter: 'openai/gpt-4o-mini',
+};
+
+const WANALYSIS_URL =
+  'https://chromewebstore.google.com/detail/wanalysis-free-whatsapp-e/ccooahckdbbckgejinhadmbmgappeclm';
+
 export default function AiAgent() {
   const { t } = useTranslation();
   useDocumentTitle(t('aiAgent.title'));
 
+  const [provider, setProvider] = useState<Provider>('apimart');
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gpt-4o-mini');
+  const [model, setModel] = useState(PROVIDER_DEFAULT_MODEL.apimart);
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LearnResult | null>(null);
+
+  const handleProviderChange = (p: Provider) => {
+    setProvider(p);
+    setModel(PROVIDER_DEFAULT_MODEL[p]);
+  };
 
   const handleSubmit = async () => {
     if (!file || !apiKey.trim()) return;
@@ -28,7 +49,7 @@ export default function AiAgent() {
       const data = await watomatisApi.learnFromChat(file, {
         apiKey: apiKey.trim(),
         model: model.trim() || undefined,
-        apiBaseUrl: apiBaseUrl.trim() || undefined,
+        apiBaseUrl: apiBaseUrl.trim() || PROVIDER_BASE[provider],
       });
       setResult(data);
     } catch (err) {
@@ -40,10 +61,7 @@ export default function AiAgent() {
 
   return (
     <div className="ai-agent-page">
-      <PageHeader
-        title={t('aiAgent.title')}
-        subtitle={t('aiAgent.subtitle')}
-      />
+      <PageHeader title={t('aiAgent.title')} subtitle={t('aiAgent.subtitle')} />
 
       <div className="ai-agent-content">
         {/* LLM Config */}
@@ -52,6 +70,14 @@ export default function AiAgent() {
             <Bot size={18} />
             {t('aiAgent.llmSection')}
           </h2>
+
+          <div className="form-group">
+            <label>{t('aiAgent.providerLabel')}</label>
+            <select value={provider} onChange={e => handleProviderChange(e.target.value as Provider)}>
+              <option value="apimart">APImart</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
 
           <div className="form-group">
             <label>{t('aiAgent.apiKeyLabel')}</label>
@@ -70,7 +96,7 @@ export default function AiAgent() {
               type="text"
               value={model}
               onChange={e => setModel(e.target.value)}
-              placeholder="gpt-4o-mini"
+              placeholder={PROVIDER_DEFAULT_MODEL[provider]}
             />
           </div>
 
@@ -89,7 +115,7 @@ export default function AiAgent() {
                 type="text"
                 value={apiBaseUrl}
                 onChange={e => setApiBaseUrl(e.target.value)}
-                placeholder="https://api.apimart.ai/v1"
+                placeholder={PROVIDER_BASE[provider]}
               />
               <small>{t('aiAgent.apiBaseUrlHint')}</small>
             </div>
@@ -103,7 +129,12 @@ export default function AiAgent() {
             {t('aiAgent.uploadSection')}
           </h2>
 
-          <p className="ai-agent-hint">{t('aiAgent.uploadHint')}</p>
+          <p className="ai-agent-hint">
+            {t('aiAgent.uploadHint')}{' '}
+            <a className="ai-agent-link" href={WANALYSIS_URL} target="_blank" rel="noopener noreferrer">
+              {t('aiAgent.getWanalysis')}
+            </a>
+          </p>
 
           <label className={`ai-agent-drop${file ? ' has-file' : ''}`}>
             <input
@@ -113,9 +144,7 @@ export default function AiAgent() {
               onChange={e => setFile(e.target.files?.[0] ?? null)}
             />
             <Upload size={28} />
-            <span className="ai-agent-drop-name">
-              {file ? file.name : t('aiAgent.chooseFile')}
-            </span>
+            <span className="ai-agent-drop-name">{file ? file.name : t('aiAgent.chooseFile')}</span>
           </label>
 
           {error && (
@@ -131,11 +160,7 @@ export default function AiAgent() {
               onClick={() => void handleSubmit()}
               disabled={loading || !file || !apiKey.trim()}
             >
-              {loading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Bot size={16} />
-              )}
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
               {loading ? t('aiAgent.learning') : t('aiAgent.learnBtn')}
             </button>
           </div>

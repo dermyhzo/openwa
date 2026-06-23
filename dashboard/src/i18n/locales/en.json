@@ -708,6 +708,8 @@
     "vcSummary": "Summary",
     "qnaTitle": "Learned questions & answers",
     "qnaQuestion": "Question",
-    "qnaAnswer": "Answer"
+    "qnaAnswer": "Answer",
+    "providerLabel": "Provider",
+    "getWanalysis": "Get the WAnalysis extension"
   }
 }

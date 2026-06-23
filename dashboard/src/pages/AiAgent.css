@@ -132,7 +132,59 @@
   justify-content: flex-start;
 }
 
-/* Reuse btn-primary from Plugins.css global classes */
+/* Provider select — match the text inputs */
+.ai-agent-page .form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  background: var(--bg-light);
+  color: var(--text-primary);
+  transition: all 0.2s;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.ai-agent-page .form-group select:focus {
+  outline: none;
+  border-color: var(--primary, #25d366);
+  background: var(--bg-white);
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+}
+
+/* Primary button — Plugins.css isn't loaded on this page, so style it here */
+.ai-agent-page .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary, #25d366);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+
+.ai-agent-page .btn-primary:hover:not(:disabled) {
+  filter: brightness(0.93);
+}
+
+.ai-agent-page .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-agent-link {
+  color: var(--primary, #25d366);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  white-space: nowrap;
+}
 
 /* Stats row */
 .ai-agent-stats-row {
