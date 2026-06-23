@@ -32,7 +32,7 @@ export default function Onboarding() {
         ]);
 
         const connected = sessions.some(
-          (s: Session) => s.status === 'ready' || s.status === 'connected',
+          (s: Session) => s.status === 'ready',
         );
 
         const sessionIds: string[] = profilesRes?.sessionIds ?? [];
