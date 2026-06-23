@@ -20,6 +20,11 @@ export interface WatomatisProfile {
     originVillageCode: string;
     defaultWeightKg: number;
   };
+  guardrails?: {
+    typingDelayMs?: number;
+    dailyCap?: number;
+    businessHours?: { start: string; end: string };
+  };
 }
 
 @Injectable()

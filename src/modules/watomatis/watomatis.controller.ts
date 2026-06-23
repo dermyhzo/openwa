@@ -26,6 +26,7 @@ import type { MinedQna } from './learning/types';
 import { ShippingConnector } from './connectors/shipping.connector';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
+const READINESS_MIN_RECORDINGS = 20;
 
 function redactApiKey(profile: WatomatisProfile): WatomatisProfile {
   return { ...profile, apiKey: profile.apiKey ? '***' : '' };
@@ -133,6 +134,28 @@ export class WatomatisController {
   @ApiResponse({ status: 200, description: 'List of session ids' })
   async listProfiles(): Promise<{ sessionIds: string[] }> {
     return { sessionIds: await this.store.list() };
+  }
+
+  @Get('readiness/:sessionId')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Check agent readiness and suggest switching to full-auto mode' })
+  @ApiResponse({ status: 200, description: 'Readiness report' })
+  @ApiResponse({ status: 404, description: 'Profile not found' })
+  async getReadiness(
+    @Param('sessionId') sessionId: string,
+  ): Promise<{ recordings: number; qna: number; ready: boolean; suggestFullAuto: boolean; reason: string }> {
+    const profile = await this.store.get(sessionId);
+    if (!profile) throw new NotFoundException(`No profile for session ${sessionId}`);
+
+    const recordings = await this.recordingStore.count(sessionId);
+    const qna = (profile.qna ?? []).length;
+    const ready = recordings >= READINESS_MIN_RECORDINGS;
+    const suggestFullAuto = profile.mode === 'supervised' && ready;
+    const reason = ready
+      ? `Agent sudah belajar dari ${recordings} percakapan — siap dicoba full-auto.`
+      : `Masih belajar: ${recordings}/${READINESS_MIN_RECORDINGS} percakapan terekam.`;
+
+    return { recordings, qna, ready, suggestFullAuto, reason };
   }
 
   @Get('drafts')

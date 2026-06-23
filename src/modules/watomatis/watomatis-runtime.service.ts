@@ -11,6 +11,9 @@ import { ShippingConnector } from './connectors/shipping.connector';
 // Small de-dup window so a burst of messages doesn't double-fire; still answers normal follow-ups.
 const COOLDOWN_MS = 1_500;
 
+// Anti-ban: max typing delay we'll ever sleep (ms).
+const MAX_TYPING_DELAY_MS = 15_000;
+
 /**
  * The Watomatis agent at runtime: listens on inbound messages and, for sessions that have a saved
  * profile in `supervised`/`auto` mode, drafts a reply in the learned voice (Voice Card + Q&A).
@@ -20,6 +23,9 @@ const COOLDOWN_MS = 1_500;
 export class WatomatisRuntime implements OnModuleInit {
   private readonly logger = new Logger('WatomatisRuntime');
   private readonly lastReplyAt = new Map<string, number>();
+
+  // Anti-ban: daily send cap per sessionId.  Resets when the Asia/Jakarta date changes.
+  private readonly dailyCount = new Map<string, { date: string; count: number }>();
 
   constructor(
     private readonly hooks: HookManager,
@@ -57,12 +63,42 @@ export class WatomatisRuntime implements OnModuleInit {
       const { reply, canAnswer } = await this.generateReply(profile, m.body);
 
       if (profile.mode === 'auto') {
+        const g = profile.guardrails;
+
+        // Business hours check
+        if (g?.businessHours && !this.withinBusinessHours(g.businessHours)) {
+          return { continue: true };
+        }
+
+        // Daily cap check
+        if (g?.dailyCap !== undefined && g.dailyCap > 0) {
+          const todayJkt = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+          const entry = this.dailyCount.get(sessionId);
+          const current = entry && entry.date === todayJkt ? entry.count : 0;
+          if (current >= g.dailyCap) {
+            return { continue: true };
+          }
+        }
+
+        // Typing delay
+        if (g?.typingDelayMs && g.typingDelayMs > 0) {
+          await new Promise(r => setTimeout(r, Math.min(g.typingDelayMs!, MAX_TYPING_DELAY_MS)));
+        }
+
         const text =
           canAnswer && reply
             ? reply
             : profile.fallbackMessage?.trim() || 'Mohon tunggu ya kak, CS kami akan segera membantu.';
         await this.messages.sendText(sessionId, { chatId: m.chatId, text });
         this.lastReplyAt.set(m.chatId, Date.now());
+
+        // Increment daily cap counter after successful send
+        if (g?.dailyCap !== undefined && g.dailyCap > 0) {
+          const todayJkt = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+          const entry = this.dailyCount.get(sessionId);
+          const current = entry && entry.date === todayJkt ? entry.count : 0;
+          this.dailyCount.set(sessionId, { date: todayJkt, count: current + 1 });
+        }
       } else {
         await this.drafts.append({ sessionId, chatId: m.chatId, incoming: m.body, reply, canAnswer });
       }
@@ -71,6 +107,16 @@ export class WatomatisRuntime implements OnModuleInit {
     }
 
     return { continue: true };
+  }
+
+  /** Returns true if the current Asia/Jakarta time is within [start, end] (inclusive, "HH:MM" format). */
+  withinBusinessHours(hours: { start: string; end: string }): boolean {
+    const nowHHMM = new Date().toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return nowHHMM >= hours.start && nowHHMM <= hours.end;
   }
 
   private async generateReply(
