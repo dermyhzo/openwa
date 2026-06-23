@@ -34,6 +34,7 @@ import { PluginsModule } from './core/plugins';
 import { PluginsApiModule } from './modules/plugins/plugins.module';
 import { ExtensionsModule } from './plugins/extensions/extensions.module';
 import { WatomatisModule } from './modules/watomatis/watomatis.module';
+import { LicenseModule } from './modules/license/license.module';
 
 // Only import QueueModule if explicitly enabled to avoid Redis connection errors
 const queueModules: Array<Type | DynamicModule> = [];
@@ -220,6 +221,7 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
     PluginsApiModule, // Phase 5: Plugins API
     ExtensionsModule, // First-party extension plugins (registered disabled)
     WatomatisModule, // Watomatis: chat-learning pipeline (voice card + Q&A from CSV)
+    LicenseModule, // Watomatis license/monetization — Duitku payments (BYOT)
     ...serveStaticModules, // Bundled dashboard SPA (production single-port setup)
   ],
 })
