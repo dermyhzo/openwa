@@ -743,8 +743,10 @@ export const watomatisApi = {
   },
   saveProfile: (body: SaveProfileBody) =>
     request<unknown>('/watomatis/profile', { method: 'POST', body: JSON.stringify(body) }),
+  listProfiles: () =>
+    request<{ sessionIds: string[] }>('/watomatis/profiles'),
   getProfile: (sessionId: string) =>
-    request<unknown>(`/watomatis/profile/${sessionId}`),
+    request<{ mode?: WatomatisMode } | null>(`/watomatis/profile/${sessionId}`),
   listDrafts: (sessionId?: string) => {
     const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
     return request<Draft[]>(`/watomatis/drafts${query}`);

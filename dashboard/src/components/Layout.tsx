@@ -24,6 +24,7 @@ import {
   Bot,
   Inbox,
   GraduationCap,
+  Rocket,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -36,6 +37,7 @@ interface LayoutProps {
 }
 
 const allNavItems = [
+  { to: '/get-started', icon: Rocket, key: 'getStarted' as const, adminOnly: false },
   { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
   { to: '/chats', icon: MessageSquare, key: 'chats' as const, adminOnly: false },

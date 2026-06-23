@@ -65,6 +65,7 @@
     "palette": "Palette"
   },
   "nav": {
+    "getStarted": "Get started",
     "dashboard": "Dashboard",
     "sessions": "Sessions",
     "chats": "Chats",
@@ -748,6 +749,24 @@
     "colQuestion": "Question",
     "colAnswer": "Answer",
     "colTime": "Time"
+  },
+  "onboarding": {
+    "title": "Get Started",
+    "subtitle": "Follow these steps to set up your AI WhatsApp assistant.",
+    "progress": "{{done}} of {{total}} done",
+    "statusDone": "Done",
+    "statusTodo": "To do",
+    "actionGo": "Go",
+    "actionView": "View",
+    "allDone": "You're all set! Your AI WhatsApp assistant is live.",
+    "step1Title": "Connect WhatsApp",
+    "step1Desc": "Create a session and scan the QR code to link your WhatsApp account.",
+    "step2Title": "Set up your AI",
+    "step2Desc": "Upload a chat export to teach the agent your writing style and Q&A.",
+    "step3Title": "Activate",
+    "step3Desc": "Enable the agent on a session in supervised or auto mode.",
+    "step4Title": "Subscription / License",
+    "step4Desc": "Activate your license to unlock all features."
   },
   "drafts": {
     "title": "Drafts",
