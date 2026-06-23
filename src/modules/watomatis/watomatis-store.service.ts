@@ -25,6 +25,8 @@ export interface WatomatisProfile {
     dailyCap?: number;
     businessHours?: { start: string; end: string };
   };
+  brandKnowledge?: string;
+  products?: { name: string; price?: string; description?: string; imageUrl?: string }[];
 }
 
 @Injectable()

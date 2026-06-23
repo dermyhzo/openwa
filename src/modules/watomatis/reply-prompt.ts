@@ -5,6 +5,10 @@ export interface ReplyPromptOpts {
   detectOngkir?: boolean;
   /** Real-time shipping quotes (already fetched) to answer a shipping question with real numbers. */
   shippingFacts?: string;
+  /** Free-text brand documentation to give the agent additional ground-truth context. */
+  brandKnowledge?: string;
+  /** Product catalog entries the agent may reference when answering product questions. */
+  products?: { name: string; price?: string; description?: string }[];
 }
 
 /**
@@ -29,6 +33,23 @@ export function buildReplyPrompt(
     'INFORMASI TOKO (fakta yang kamu ketahui):',
     knowledge,
   ];
+
+  if (opts.brandKnowledge) {
+    lines.push(
+      '',
+      'PENGETAHUAN TAMBAHAN (dari dokumen brand):',
+      opts.brandKnowledge.slice(0, 4000),
+    );
+  }
+
+  if (opts.products && opts.products.length > 0) {
+    lines.push('', 'KATALOG PRODUK:');
+    for (const p of opts.products) {
+      const pricePart = p.price ? ` — ${p.price}` : '';
+      const descPart = p.description ? ` : ${p.description}` : '';
+      lines.push(`- ${p.name}${pricePart}${descPart}`);
+    }
+  }
 
   if (opts.shippingFacts) {
     lines.push(

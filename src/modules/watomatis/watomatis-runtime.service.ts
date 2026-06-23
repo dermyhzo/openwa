@@ -140,7 +140,11 @@ export class WatomatisRuntime implements OnModuleInit {
     const sh = profile.shipping;
     const shippingEnabled = !!(sh?.enabled && sh.apiKey && sh.originVillageCode);
 
-    const res = await llm.json(buildReplyPrompt(persona, qna, nowText, { detectOngkir: shippingEnabled }), userText);
+    const knowledgeOpts = {
+      brandKnowledge: profile.brandKnowledge,
+      products: profile.products,
+    };
+    const res = await llm.json(buildReplyPrompt(persona, qna, nowText, { detectOngkir: shippingEnabled, ...knowledgeOpts }), userText);
     let reply = typeof res.reply === 'string' ? res.reply : '';
     let canAnswer = res.canAnswer === true;
 
@@ -162,7 +166,7 @@ export class WatomatisRuntime implements OnModuleInit {
             .map(q => `- ${q.courierName}: Rp${q.price.toLocaleString('id-ID')}${q.estimation ? ` (estimasi ${q.estimation})` : ''}`)
             .join('\n');
           const facts = `Tujuan: ${result.destinationName} · berat ${weight} kg\n${factsList}`;
-          const res2 = await llm.json(buildReplyPrompt(persona, qna, nowText, { shippingFacts: facts }), userText);
+          const res2 = await llm.json(buildReplyPrompt(persona, qna, nowText, { shippingFacts: facts, ...knowledgeOpts }), userText);
           if (typeof res2.reply === 'string' && res2.reply) {
             reply = res2.reply;
             canAnswer = true;
