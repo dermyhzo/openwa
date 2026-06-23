@@ -15,7 +15,7 @@ import { ApiKeyRole } from '../auth/entities/api-key.entity';
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 
 @ApiTags('watomatis')
-@Controller('api/watomatis')
+@Controller('watomatis')
 export class WatomatisController {
   constructor(private readonly watomatisService: WatomatisService) {}
 
