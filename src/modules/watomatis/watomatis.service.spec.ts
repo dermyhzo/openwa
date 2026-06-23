@@ -31,11 +31,14 @@ const fakeLlm: ChatLlm = {
   },
 };
 
+/** Stub SessionService — not used in these unit tests (no live session needed). */
+const stubSessionService = { getEngine: () => undefined } as unknown as import('../session/session.service').SessionService;
+
 describe('WatomatisService', () => {
   let service: WatomatisService;
 
   beforeEach(() => {
-    service = new WatomatisService();
+    service = new WatomatisService(stubSessionService);
   });
 
   it('parses CSV and returns correct stats', async () => {
@@ -84,5 +87,42 @@ describe('WatomatisService', () => {
     expect(result.stats.turns).toBe(0);
     expect(result.stats.me).toBe(0);
     expect(result.stats.them).toBe(0);
+  });
+});
+
+describe('WatomatisService.learnFromTurns', () => {
+  let service: WatomatisService;
+
+  beforeEach(() => {
+    service = new WatomatisService(stubSessionService);
+  });
+
+  const turns: import('./ingestion/types').TranscriptTurn[] = [
+    { sender: 'them', text: 'Ada produk x?', ts: '2024-06-01 10:00:00' },
+    { sender: 'me', text: 'Ada kak, silakan cek katalog kami ya 😊', ts: '2024-06-01 10:01:00' },
+    { sender: 'them', text: 'Oke makasih', ts: '2024-06-01 10:02:00' },
+  ];
+
+  it('counts turns correctly from pre-built turn array', async () => {
+    const result = await service.learnFromTurns(
+      turns,
+      { baseUrl: 'http://noop', apiKey: 'noop', model: 'noop' },
+      fakeLlm,
+    );
+
+    expect(result.stats.turns).toBe(3);
+    expect(result.stats.me).toBe(1);
+    expect(result.stats.them).toBe(2);
+  });
+
+  it('returns voiceCard and qna from learnFromTurns', async () => {
+    const result = await service.learnFromTurns(
+      turns,
+      { baseUrl: 'http://noop', apiKey: 'noop', model: 'noop' },
+      fakeLlm,
+    );
+
+    expect(result.voiceCard).toBeDefined();
+    expect(Array.isArray(result.qna)).toBe(true);
   });
 });

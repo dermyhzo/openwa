@@ -74,6 +74,36 @@ export class WatomatisController {
     });
   }
 
+  @Post('learn-from-session/:sessionId')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Learn voice card and Q&A directly from a connected session\'s chat history (no file upload)' })
+  @ApiResponse({ status: 201, description: 'Extracted voice card and Q&A from live message history' })
+  @ApiResponse({ status: 400, description: 'Missing apiKey or session not active' })
+  async learnFromSession(
+    @Param('sessionId') sessionId: string,
+    @Body()
+    body: {
+      apiKey?: string;
+      model?: string;
+      apiBaseUrl?: string;
+      limit?: number;
+    },
+  ): Promise<LearnResult> {
+    if (!body.apiKey) {
+      throw new BadRequestException('apiKey is required');
+    }
+
+    return this.watomatisService.learnFromSession(
+      sessionId,
+      {
+        apiKey: body.apiKey,
+        model: body.model ?? 'gpt-4o-mini',
+        baseUrl: body.apiBaseUrl ?? 'https://api.apimart.ai/v1',
+      },
+      body.limit ?? 500,
+    );
+  }
+
   @Post('profile')
   @RequireRole(ApiKeyRole.OPERATOR)
   @ApiOperation({ summary: 'Save or update agent profile for a WhatsApp session' })
