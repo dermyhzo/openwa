@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Languages,
+  Bot,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -43,6 +44,7 @@ const allNavItems = [
   // Backend /infra/* is ADMIN-only; hide the nav item from non-admins (UX + defense-in-depth).
   { to: '/infrastructure', icon: Server, key: 'infrastructure' as const, adminOnly: true },
   { to: '/plugins', icon: Puzzle, key: 'plugins' as const, adminOnly: true },
+  { to: '/ai-agent', icon: Bot, key: 'aiAgent' as const, adminOnly: false },
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
 ];
 

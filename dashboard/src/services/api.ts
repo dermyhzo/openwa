@@ -649,6 +649,50 @@ export interface CatalogPlugin {
 // Plugins API
 // =============================================================================
 
+// =============================================================================
+// Watomatis AI Agent API
+// =============================================================================
+
+export interface LearnVoiceCard {
+  tone: string;
+  formality: string;
+  emojiUsage: string;
+  greetings: string[];
+  closings: string[];
+  quirks: string[];
+  summary: string;
+  avgReplyChars: number;
+}
+
+export interface LearnQna {
+  question: string;
+  answer: string;
+}
+
+export interface LearnResult {
+  stats: { turns: number; me: number; them: number };
+  voiceCard: LearnVoiceCard;
+  qna: LearnQna[];
+}
+
+export const watomatisfApi = {
+  learnFromChat: (
+    file: File,
+    opts: { apiKey: string; model?: string; apiBaseUrl?: string },
+  ): Promise<LearnResult> => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('apiKey', opts.apiKey);
+    if (opts.model) form.append('model', opts.model);
+    if (opts.apiBaseUrl) form.append('apiBaseUrl', opts.apiBaseUrl);
+    return request<LearnResult>('/watomatis/learn', { method: 'POST', body: form });
+  },
+};
+
+// =============================================================================
+// Plugins API
+// =============================================================================
+
 export const pluginsApi = {
   list: () => request<Plugin[]>('/plugins'),
   get: (id: string) => request<Plugin>(`/plugins/${id}`),

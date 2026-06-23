@@ -74,7 +74,8 @@
     "infrastructure": "Infraestructura",
     "plugins": "Plugins",
     "logs": "Registros",
-    "templates": "Plantillas"
+    "templates": "Plantillas",
+    "aiAgent": "AI Agent"
   },
   "chats": {
     "subtitle": "Envía y responde mensajes de WhatsApp en tiempo real",
@@ -676,5 +677,37 @@
       "uninstalled": "Plugin desinstalado",
       "uninstallFailed": "Error al desinstalar"
     }
+  },
+  "aiAgent": {
+    "title": "AI Agent",
+    "subtitle": "Pelajari gaya bicara dari riwayat chat WhatsApp-mu",
+    "llmSection": "Konfigurasi LLM",
+    "apiKeyLabel": "API Key LLM",
+    "apiKeyPlaceholder": "sk-...",
+    "modelLabel": "Model",
+    "showAdvanced": "Tampilkan pengaturan lanjutan",
+    "hideAdvanced": "Sembunyikan pengaturan lanjutan",
+    "apiBaseUrlLabel": "API Base URL (opsional)",
+    "apiBaseUrlHint": "Biarkan kosong untuk memakai default (https://api.apimart.ai/v1)",
+    "uploadSection": "Upload Chat Export",
+    "uploadHint": "Export chat via WAnalysis, lalu upload .csv-nya di sini.",
+    "chooseFile": "Pilih file .csv...",
+    "learnBtn": "Pelajari dari chat",
+    "learning": "Sedang belajar...",
+    "statsTurns": "Total Pesan",
+    "statsMe": "Pesanku",
+    "statsThem": "Pesan Pelanggan",
+    "voiceCardTitle": "Voice Card",
+    "vcTone": "Tone",
+    "vcFormality": "Formalitas",
+    "vcEmojiUsage": "Pemakaian Emoji",
+    "vcAvgChars": "Rata-rata Karakter",
+    "vcQuirks": "Kebiasaan Unik",
+    "vcGreetings": "Sapaan",
+    "vcClosings": "Penutup",
+    "vcSummary": "Ringkasan",
+    "qnaTitle": "Pertanyaan & Jawaban yang Dipelajari",
+    "qnaQuestion": "Pertanyaan",
+    "qnaAnswer": "Jawaban"
   }
 }
