@@ -565,7 +565,7 @@ export default function Plugins() {
               <>
                 <div className="modal-body">
                   <p className="install-hint">
-                    {t('plugins.installModal.catalogHint', 'Install directly from the OpenWA plugin catalog. The .zip is fetched server-side through the SSRF guard, then validated and sandboxed.')}
+                    {t('plugins.installModal.catalogHint', 'Install directly from the Watomatis plugin catalog. The .zip is fetched server-side through the SSRF guard, then validated and sandboxed.')}
                   </p>
                   {catalogLoading ? (
                     <div className="catalog-empty">

@@ -6,7 +6,7 @@
     }
   },
   "common": {
-    "appName": "OpenWA",
+    "appName": "Watomatis",
     "appSubtitle": "WhatsApp API",
     "loading": "正在載入...",
     "save": "儲存",
@@ -133,7 +133,7 @@
     "connectionError": "無法連線到伺服器。請再試一次。",
     "help": "需要協助？",
     "viewDocs": "查看文件",
-    "footer": "由 Yudhi Armyndharis 及 OpenWA 社群用 ❤️ 打造",
+    "footer": "由 Yudhi Armyndharis 及 Watomatis 社群用 ❤️ 打造",
     "version": "v{{version}} · {{date}}"
   },
   "dashboard": {
@@ -541,7 +541,7 @@
       "postgres": "PostgreSQL",
       "postgresDesc": "適用於生產環境的資料庫",
       "useBuiltIn": "使用內置 PostgreSQL 容器",
-      "builtInDesc": "OpenWA 會為你管理 PostgreSQL 容器",
+      "builtInDesc": "Watomatis 會為你管理 PostgreSQL 容器",
       "dbName": "資料庫名稱",
       "poolSize": "連線池大小",
       "ssl": "SSL 連線",
@@ -557,7 +557,7 @@
       "enable": "啟用 Redis",
       "enableDesc": "快取、工作階段儲存及 BullMQ 佇列需要 Redis",
       "useBuiltIn": "使用內置 Redis 容器",
-      "builtInDesc": "OpenWA 會為你管理 Redis 容器",
+      "builtInDesc": "Watomatis 會為你管理 Redis 容器",
       "queueTitle": "啟用 BullMQ 佇列系統",
       "queueDesc": "使用訊息佇列可靠地傳遞訊息和 Webhook",
       "statsTitle": "佇列統計",
@@ -579,7 +579,7 @@
       "s3": "Amazon S3",
       "s3Desc": "雲端儲存空間（兼容 S3）",
       "useBuiltIn": "使用內置 MinIO 容器",
-      "builtInDesc": "OpenWA 會為你管理 MinIO（兼容 S3）容器",
+      "builtInDesc": "Watomatis 會為你管理 MinIO（兼容 S3）容器",
       "storagePath": "儲存路徑",
       "bucket": "儲存桶名稱",
       "region": "區域",
@@ -636,7 +636,7 @@
     "engineSwitchHint": "在「設定」中設為使用中的引擎，然後重新啟動",
     "empty": {
       "title": "找不到外掛",
-      "description": "安裝外掛以擴展 OpenWA 功能"
+      "description": "安裝外掛以擴展 Watomatis 功能"
     },
     "config": {
       "title": "設定 {{name}}",

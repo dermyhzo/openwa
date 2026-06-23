@@ -6,7 +6,7 @@
     }
   },
   "common": {
-    "appName": "OpenWA",
+    "appName": "Watomatis",
     "appSubtitle": "WhatsApp API",
     "loading": "లోడ్ అవుతోంది...",
     "save": "సేవ్ చేయి",
@@ -133,7 +133,7 @@
     "connectionError": "సర్వర్‌కు కనెక్ట్ కాలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.",
     "help": "సహాయం కావాలా?",
     "viewDocs": "డాక్యుమెంటేషన్ చూడండి",
-    "footer": "Yudhi Armyndharis మరియు OpenWA కమ్యూనిటీ ద్వారా ❤️ తో తయారు చేయబడింది",
+    "footer": "Yudhi Armyndharis మరియు Watomatis కమ్యూనిటీ ద్వారా ❤️ తో తయారు చేయబడింది",
     "version": "v{{version}} · {{date}}"
   },
   "dashboard": {
@@ -541,7 +541,7 @@
       "postgres": "PostgreSQL",
       "postgresDesc": "ప్రొడక్షన్-రెడీ డేటాబేస్",
       "useBuiltIn": "ఇన్-బిల్ట్ PostgreSQL కంటైనర్‌ను ఉపయోగించండి",
-      "builtInDesc": "OpenWA మీ కోసం ఒక PostgreSQL కంటైనర్‌ను నిర్వహిస్తుంది",
+      "builtInDesc": "Watomatis మీ కోసం ఒక PostgreSQL కంటైనర్‌ను నిర్వహిస్తుంది",
       "dbName": "డేటాబేస్ పేరు",
       "poolSize": "పూల్ సైజు",
       "ssl": "SSL కనెక్షన్",
@@ -557,7 +557,7 @@
       "enable": "Redis ప్రారంభించండి",
       "enableDesc": "క్యాషింగ్, సెషన్ స్టోరేజ్ మరియు BullMQ క్యూల కోసం అవసరం",
       "useBuiltIn": "ఇన్-బిల్ట్ Redis కంటైనర్‌ను ఉపయోగించండి",
-      "builtInDesc": "OpenWA మీ కోసం ఒక Redis కంటైనర్‌ను నిర్వహిస్తుంది",
+      "builtInDesc": "Watomatis మీ కోసం ఒక Redis కంటైనర్‌ను నిర్వహిస్తుంది",
       "queueTitle": "BullMQ క్యూ సిస్టమ్‌ను ప్రారంభించండి",
       "queueDesc": "నమ్మకమైన సందేశం మరియు వెబ్‌హుక్ డెలివరీ కోసం సందేశ క్యూలను ఉపయోగించండి",
       "statsTitle": "క్యూ గణాంకాలు",
@@ -579,7 +579,7 @@
       "s3": "Amazon S3",
       "s3Desc": "క్లౌడ్ స్టోరేజ్ (S3 అనుకూలమైనది)",
       "useBuiltIn": "ఇన్-బిల్ట్ MinIO కంటైనర్‌ను ఉపయోగించండి",
-      "builtInDesc": "OpenWA మీ కోసం ఒక MinIO (S3-అనుకూల) కంటైనర్‌ను నిర్వహిస్తుంది",
+      "builtInDesc": "Watomatis మీ కోసం ఒక MinIO (S3-అనుకూల) కంటైనర్‌ను నిర్వహిస్తుంది",
       "storagePath": "స్టోరేజ్ పాత్",
       "bucket": "బకెట్ పేరు",
       "region": "ప్రాంతం (Region)",
@@ -636,7 +636,7 @@
     "engineSwitchHint": "సెట్టింగ్‌లలో దీన్ని యాక్టివ్ ఇంజిన్‌గా సెట్ చేసి, ఆపై రీస్టార్ట్ చేయండి",
     "empty": {
       "title": "ఎలాంటి ప్లగిన్స్ కనుగొనబడలేదు",
-      "description": "OpenWA కార్యాచరణను విస్తరించడానికి ప్లగిన్లను ఇన్‌స్టాల్ చేయండి"
+      "description": "Watomatis కార్యాచరణను విస్తరించడానికి ప్లగిన్లను ఇన్‌స్టాల్ చేయండి"
     },
     "config": {
       "title": "{{name}} కాన్ఫిగర్ చేయి",
