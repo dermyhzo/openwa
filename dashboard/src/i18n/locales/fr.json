@@ -76,7 +76,8 @@
     "plugins": "Plugins",
     "logs": "Journaux",
     "aiAgent": "AI Agent",
-    "drafts": "Drafts"
+    "drafts": "Drafts",
+    "learning": "Learning"
   },
   "chats": {
     "subtitle": "Envoyez et répondez aux messages WhatsApp en temps réel",
@@ -723,6 +724,21 @@
     "activateBtn": "Save & activate",
     "activating": "Saving...",
     "activateSuccess": "Profile saved and activated successfully."
+  },
+  "learning": {
+    "title": "Learning",
+    "subtitle": "Review recorded conversations and update the agent's knowledge base",
+    "sessionLabel": "Session",
+    "noSessions": "No sessions available",
+    "statLabel": "Conversations learned",
+    "consolidateBtn": "Update knowledge from conversations",
+    "consolidating": "Updating...",
+    "consolidateSuccess": "Knowledge updated — {{updated}} Q&A total",
+    "emptyTitle": "No conversations recorded yet",
+    "emptyDesc": "Set a session to Supervised mode and let real chats come in.",
+    "colQuestion": "Question",
+    "colAnswer": "Answer",
+    "colTime": "Time"
   },
   "drafts": {
     "title": "Drafts",

@@ -699,6 +699,22 @@ export interface Draft {
   createdAt: string;
 }
 
+export interface Recording {
+  question: string;
+  answer: string;
+  ts: string;
+}
+
+export interface RecordingsResponse {
+  count: number;
+  items: Recording[];
+}
+
+export interface ConsolidateResponse {
+  updated: number;
+  qna: { question: string; answer: string }[];
+}
+
 export const watomatisApi = {
   learnFromChat: (
     file: File,
@@ -723,6 +739,10 @@ export const watomatisApi = {
     request<unknown>(`/watomatis/drafts/${id}/approve`, { method: 'POST', body: JSON.stringify({ text }) }),
   dismissDraft: (id: string) =>
     request<void>(`/watomatis/drafts/${id}`, { method: 'DELETE' }),
+  getRecordings: (sessionId: string) =>
+    request<RecordingsResponse>(`/watomatis/recordings/${sessionId}`),
+  consolidateRecordings: (sessionId: string) =>
+    request<ConsolidateResponse>(`/watomatis/recordings/${sessionId}/consolidate`, { method: 'POST' }),
 };
 
 // =============================================================================

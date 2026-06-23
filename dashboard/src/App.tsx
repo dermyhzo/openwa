@@ -22,6 +22,7 @@ const Infrastructure = lazy(() => import('./pages/Infrastructure').then(m => ({ 
 const Plugins = lazy(() => import('./pages/Plugins'));
 const AiAgent = lazy(() => import('./pages/AiAgent'));
 const Drafts = lazy(() => import('./pages/Drafts'));
+const Learning = lazy(() => import('./pages/Learning'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,7 @@ function AppContent() {
             {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
             <Route path="ai-agent" element={<AiAgent />} />
             <Route path="drafts" element={<Drafts />} />
+            <Route path="learning" element={<Learning />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
