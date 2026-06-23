@@ -677,6 +677,19 @@ export interface LearnResult {
 
 export type WatomatisMode = 'off' | 'supervised' | 'auto';
 
+export interface WatomatisGuardrails {
+  typingDelayMs?: number;
+  dailyCap?: number;
+  businessHours?: { start: string; end: string };
+}
+
+export interface WatomatisProduct {
+  name: string;
+  price?: string;
+  description?: string;
+  imageUrl?: string;
+}
+
 export interface SaveProfileBody {
   sessionId: string;
   provider: string;
@@ -693,6 +706,17 @@ export interface SaveProfileBody {
     originVillageCode: string;
     defaultWeightKg: number;
   };
+  guardrails?: WatomatisGuardrails;
+  brandKnowledge?: string;
+  products?: WatomatisProduct[];
+}
+
+export interface ReadinessResult {
+  recordings: number;
+  qna: number;
+  ready: boolean;
+  suggestFullAuto: boolean;
+  reason: string;
 }
 
 export interface VillageItem {
@@ -764,6 +788,16 @@ export const watomatisApi = {
       method: 'POST',
       body: JSON.stringify({ apiKey, query }),
     }),
+  learnFromSession: (
+    sessionId: string,
+    opts: { apiKey: string; model?: string; apiBaseUrl?: string; limit?: number },
+  ): Promise<LearnResult> =>
+    request<LearnResult>(`/watomatis/learn-from-session/${sessionId}`, {
+      method: 'POST',
+      body: JSON.stringify(opts),
+    }),
+  getReadiness: (sessionId: string): Promise<ReadinessResult> =>
+    request<ReadinessResult>(`/watomatis/readiness/${sessionId}`),
 };
 
 // =============================================================================

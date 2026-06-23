@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Upload, Loader2, AlertCircle, Zap } from 'lucide-react';
-import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type VillageItem } from '../services/api';
+import { Bot, Upload, Loader2, AlertCircle, Zap, Trash2 } from 'lucide-react';
+import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type VillageItem, type WatomatisProduct } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
@@ -55,12 +55,40 @@ export default function AiAgent() {
   const [searchingVillage, setSearchingVillage] = useState(false);
   const [villageSearchError, setVillageSearchError] = useState<string | null>(null);
 
+  // Brand knowledge + products
+  const [brandKnowledge, setBrandKnowledge] = useState('');
+  const [products, setProducts] = useState<WatomatisProduct[]>([]);
+
+  // Guardrails state
+  const [typingDelayMs, setTypingDelayMs] = useState('');
+  const [dailyCap, setDailyCap] = useState('');
+  const [bhStart, setBhStart] = useState('');
+  const [bhEnd, setBhEnd] = useState('');
+
+  // Learn from WhatsApp state
+  const [learnSessionId, setLearnSessionId] = useState('');
+  const [learningFromWa, setLearningFromWa] = useState(false);
+  const [learnWaError, setLearnWaError] = useState<string | null>(null);
+
+  // Readiness state
+  const [readiness, setReadiness] = useState<{ recordings: number; qna: number; ready: boolean; suggestFullAuto: boolean; reason: string } | null>(null);
+
   useEffect(() => {
     sessionApi.list().then(list => {
       setSessions(list);
-      if (list.length > 0) setActivateSessionId(list[0].id);
+      if (list.length > 0) {
+        setActivateSessionId(list[0].id);
+        setLearnSessionId(list[0].id);
+      }
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (result && activateSessionId) {
+      void fetchReadiness(activateSessionId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activateSessionId, result]);
 
   const handleProviderChange = (p: Provider) => {
     setProvider(p);
@@ -79,6 +107,34 @@ export default function AiAgent() {
       setVillageSearchError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
       setSearchingVillage(false);
+    }
+  };
+
+  const handleLearnFromWa = async () => {
+    if (!learnSessionId || !apiKey.trim()) return;
+    setLearningFromWa(true);
+    setLearnWaError(null);
+    try {
+      const data = await watomatisApi.learnFromSession(learnSessionId, {
+        apiKey: apiKey.trim(),
+        model: model.trim() || undefined,
+        apiBaseUrl: apiBaseUrl.trim() || PROVIDER_BASE[provider],
+      });
+      setResult(data);
+    } catch (err) {
+      setLearnWaError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setLearningFromWa(false);
+    }
+  };
+
+  const fetchReadiness = async (sessionId: string) => {
+    if (!sessionId) return;
+    try {
+      const data = await watomatisApi.getReadiness(sessionId);
+      setReadiness(data);
+    } catch {
+      // non-critical — ignore errors
     }
   };
 
@@ -101,8 +157,16 @@ export default function AiAgent() {
         shipping: shippingEnabled
           ? { enabled: true, apiKey: shipApiKey.trim(), originVillageCode: originCode, defaultWeightKg: Number(weightKg) || 1 }
           : { enabled: false, apiKey: '', originVillageCode: '', defaultWeightKg: 1 },
+        brandKnowledge: brandKnowledge.trim() || undefined,
+        products: products.filter(p => p.name.trim()),
+        guardrails: {
+          typingDelayMs: Number(typingDelayMs) || undefined,
+          dailyCap: Number(dailyCap) || undefined,
+          businessHours: (bhStart && bhEnd) ? { start: bhStart, end: bhEnd } : undefined,
+        },
       });
       setActivateSuccess(t('aiAgent.activateSuccess'));
+      void fetchReadiness(activateSessionId);
     } catch (err) {
       setActivateError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
@@ -234,6 +298,46 @@ export default function AiAgent() {
               {loading ? t('aiAgent.learning') : t('aiAgent.learnBtn')}
             </button>
           </div>
+
+          {/* Learn directly from WhatsApp */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0 0.75rem' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>{t('aiAgent.orDivider')}</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
+
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem' }}>
+            {t('aiAgent.learnFromWaHint')}
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select
+              value={learnSessionId}
+              onChange={e => setLearnSessionId(e.target.value)}
+              style={{ flex: 1, padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.9375rem', background: 'var(--bg-light)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+            >
+              {sessions.length === 0 && <option value="">{t('aiAgent.activateNoSessions')}</option>}
+              {sessions.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.phone ?? t('aiAgent.activateNoPhone')})</option>
+              ))}
+            </select>
+            <button
+              className="btn-primary"
+              onClick={() => void handleLearnFromWa()}
+              disabled={learningFromWa || !apiKey.trim() || !learnSessionId}
+              style={{ flexShrink: 0 }}
+            >
+              {learningFromWa ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
+              {learningFromWa ? t('aiAgent.learning') : t('aiAgent.learnFromWaBtn')}
+            </button>
+          </div>
+
+          {learnWaError && (
+            <div className="error-banner" style={{ marginTop: '0.75rem' }}>
+              <AlertCircle size={18} />
+              <span className="error-banner-text">{learnWaError}</span>
+            </div>
+          )}
         </div>
 
         {/* Results */}
@@ -482,14 +586,144 @@ export default function AiAgent() {
                 </div>
               )}
 
+              {/* Brand knowledge */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: '0.25rem' }}>
+                <div className="form-group">
+                  <label>{t('aiAgent.brandKnowledgeLabel')}</label>
+                  <textarea
+                    value={brandKnowledge}
+                    onChange={e => setBrandKnowledge(e.target.value)}
+                    placeholder={t('aiAgent.brandKnowledgePlaceholder')}
+                    rows={4}
+                    style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.9375rem', background: 'var(--bg-light)', color: 'var(--text-primary)', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+              </div>
+
+              {/* Products */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  {t('aiAgent.productsLabel')}
+                </label>
+                {products.map((p, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder={t('aiAgent.productName')}
+                      value={p.name}
+                      onChange={e => setProducts(prev => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                      style={{ padding: '0.6rem 0.75rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.875rem', background: 'var(--bg-light)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('aiAgent.productPrice')}
+                      value={p.price ?? ''}
+                      onChange={e => setProducts(prev => prev.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                      style={{ padding: '0.6rem 0.75rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.875rem', background: 'var(--bg-light)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('aiAgent.productDescription')}
+                      value={p.description ?? ''}
+                      onChange={e => setProducts(prev => prev.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
+                      style={{ padding: '0.6rem 0.75rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.875rem', background: 'var(--bg-light)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setProducts(prev => prev.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+                      title={t('aiAgent.removeProduct')}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setProducts(prev => [...prev, { name: '', price: '', description: '' }])}
+                  style={{ fontSize: '0.875rem', color: 'var(--primary, #25d366)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                >
+                  + {t('aiAgent.addProduct')}
+                </button>
+              </div>
+
+              {/* Guardrails */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: '0.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  {t('aiAgent.guardrailsSection')}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>{t('aiAgent.typingDelayLabel')}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={typingDelayMs}
+                      onChange={e => setTypingDelayMs(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>{t('aiAgent.dailyCapLabel')}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={dailyCap}
+                      onChange={e => setDailyCap(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>{t('aiAgent.bhStartLabel')}</label>
+                    <input
+                      type="time"
+                      value={bhStart}
+                      onChange={e => setBhStart(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>{t('aiAgent.bhEndLabel')}</label>
+                    <input
+                      type="time"
+                      value={bhEnd}
+                      onChange={e => setBhEnd(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Readiness banner */}
+              {readiness && readiness.suggestFullAuto && (
+                <div style={{ margin: '1.25rem 0 0', padding: '0.875rem 1rem', background: 'rgba(37, 211, 102, 0.08)', border: '1px solid rgba(37, 211, 102, 0.35)', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 0.375rem', fontWeight: 600, fontSize: '0.875rem', color: '#15803d' }}>
+                    {readiness.reason}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                    {t('aiAgent.readinessSuggestAuto')}
+                  </p>
+                  <p style={{ margin: '0.375rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {t('aiAgent.readinessCounts', { recordings: readiness.recordings, qna: readiness.qna })}
+                  </p>
+                </div>
+              )}
+
+              {readiness && !readiness.suggestFullAuto && (
+                <div style={{ margin: '1.25rem 0 0', padding: '0.625rem 0.875rem', background: 'var(--bg-light)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  {t('aiAgent.readinessCounts', { recordings: readiness.recordings, qna: readiness.qna })}
+                </div>
+              )}
+
               {activateSuccess && (
-                <div className="ai-agent-activate-success">
+                <div className="ai-agent-activate-success" style={{ marginTop: '1rem' }}>
                   {activateSuccess}
                 </div>
               )}
 
               {activateError && (
-                <div className="error-banner" style={{ marginBottom: '1rem' }}>
+                <div className="error-banner" style={{ marginBottom: '1rem', marginTop: '1rem' }}>
                   <AlertCircle size={18} />
                   <span className="error-banner-text">{activateError}</span>
                 </div>
