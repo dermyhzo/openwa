@@ -151,13 +151,13 @@ export default function Shipping() {
                   <button
                     key={v.code}
                     type="button"
+                    className="village-result"
                     onClick={() => {
                       setOriginVillageCode(v.code);
                       setOriginLabel(`${v.name}, ${v.regency}`);
                       setVillageResults([]);
                       setOriginQuery('');
                     }}
-                    style={{ textAlign: 'left', background: 'var(--bg-secondary, #f9fafb)', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '4px', padding: '0.35rem 0.6rem', cursor: 'pointer', fontSize: '0.875rem' }}
                   >
                     {v.name}, {v.regency}
                   </button>

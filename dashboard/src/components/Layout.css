@@ -109,11 +109,18 @@
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0;
   padding: 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   overflow-y: auto;
+}
+
+/* Keep every nav child at its natural height so the nav SCROLLS instead of
+   compressing items (the collapsible group container would otherwise shrink to 0). */
+.sidebar-nav > * {
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .sidebar-nav {
@@ -130,6 +137,7 @@
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 500;
+  flex-shrink: 0;
   transition: all 0.2s;
   white-space: nowrap;
   overflow: hidden;

@@ -14,3 +14,20 @@
   cursor: pointer;
   accent-color: var(--primary, #25d366);
 }
+
+.village-result {
+  text-align: left;
+  background: var(--bg-white);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.village-result:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: var(--primary);
+}
