@@ -141,7 +141,7 @@
 }
 
 .nav-item:hover {
-  background: var(--bg-light);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
   color: var(--text-primary);
   text-decoration: none;
 }
@@ -175,10 +175,13 @@
   cursor: pointer;
   user-select: none;
   border-radius: var(--radius);
-  transition: color 0.2s;
+  background: none;
+  border: none;
+  transition: background 0.2s, color 0.2s;
 }
 
 .nav-group-label:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
   color: var(--text-secondary);
 }
 
@@ -262,7 +265,7 @@
 }
 
 .theme-toggle-btn:hover {
-  background: var(--bg-light);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
   color: var(--text-primary);
 }
 
@@ -499,9 +502,9 @@
 }
 
 .logout-btn:hover {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #dc2626;
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  border-color: color-mix(in srgb, #ef4444 38%, transparent);
+  color: #f87171;
 }
 
 /* ==================== Main Content ==================== */
