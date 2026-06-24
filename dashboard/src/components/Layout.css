@@ -155,6 +155,55 @@
   color: var(--primary);
 }
 
+/* Settings nav group (collapsible) — keeps OpenWA setup items tucked away */
+.nav-group-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0.5rem;
+}
+
+.nav-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius);
+  transition: color 0.2s;
+}
+
+.nav-group-label:hover {
+  color: var(--text-secondary);
+}
+
+.nav-group-label svg {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.nav-group-label.open svg {
+  transform: rotate(90deg);
+}
+
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+}
+
+.nav-group-items.open {
+  max-height: 600px;
+}
+
 .sidebar-footer {
   padding: 0.75rem;
   display: flex;
