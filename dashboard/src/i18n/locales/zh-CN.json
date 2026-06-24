@@ -80,7 +80,8 @@
     "drafts": "Drafts",
     "learning": "Learning",
     "license": "License",
-    "shipping": "Shipping"
+    "shipping": "Shipping",
+    "settings": "设置"
   },
   "chats": {
     "subtitle": "实时发送和回复 WhatsApp 消息",

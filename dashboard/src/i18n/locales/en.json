@@ -80,7 +80,8 @@
     "learning": "Learning",
     "logs": "Logs",
     "license": "License",
-    "shipping": "Shipping"
+    "shipping": "Shipping",
+    "settings": "Settings"
   },
   "chats": {
     "subtitle": "Send and reply to WhatsApp messages in real time",

@@ -80,7 +80,8 @@
     "drafts": "Drafts",
     "learning": "Learning",
     "license": "License",
-    "shipping": "Shipping"
+    "shipping": "Shipping",
+    "settings": "Paramètres"
   },
   "chats": {
     "subtitle": "Envoyez et répondez aux messages WhatsApp en temps réel",

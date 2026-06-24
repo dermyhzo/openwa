@@ -1,0 +1,52 @@
+/* ========================================================
+   Airbnb Design Tokens — Watomatis
+   Single source of truth for the light-only design system.
+   ======================================================== */
+
+:root {
+  /* Accent */
+  --rausch: #ff385c;
+  --rausch-active: #e00b41;
+  --rausch-disabled: #ffd1da;
+
+  /* Surfaces */
+  --canvas: #ffffff;
+  --surface-soft: #f7f7f7;
+  --surface-strong: #f2f2f2;
+
+  /* Hairlines */
+  --hairline: #dddddd;
+  --hairline-soft: #ebebeb;
+  --border-strong: #c1c1c1;
+
+  /* Text */
+  --ink: #222222;
+  --body-text: #3f3f3f;
+  --muted: #6a6a6a;
+  --muted-soft: #929292;
+  --on-primary: #ffffff;
+
+  /* Semantic */
+  --error: #c13515;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+  --shadow-popover: rgba(0, 0, 0, 0.12) 0 6px 16px 0, rgba(0, 0, 0, 0.08) 0 3px 8px 0;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+}

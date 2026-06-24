@@ -27,6 +27,7 @@ import {
   Rocket,
   CreditCard,
   Truck,
+  Settings,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -38,25 +39,33 @@ interface LayoutProps {
   userRole: UserRole | null;
 }
 
-const allNavItems = [
+// PRIMARY nav items — Watomatis product features (top, ungrouped)
+const primaryNavItems = [
   { to: '/get-started', icon: Rocket, key: 'getStarted' as const, adminOnly: false },
   { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
+  { to: '/ai-agent', icon: Bot, key: 'aiAgent' as const, adminOnly: false },
+  { to: '/drafts', icon: Inbox, key: 'drafts' as const, adminOnly: false },
+  { to: '/learning', icon: GraduationCap, key: 'learning' as const, adminOnly: false },
+  { to: '/shipping', icon: Truck, key: 'shipping' as const, adminOnly: false },
+  { to: '/license', icon: CreditCard, key: 'license' as const, adminOnly: false },
+];
+
+// SETTINGS group — OpenWA technical/setup items (collapsible)
+const settingsNavItems = [
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
   { to: '/chats', icon: MessageSquare, key: 'chats' as const, adminOnly: false },
   { to: '/webhooks', icon: Webhook, key: 'webhooks' as const, adminOnly: false },
   { to: '/templates', icon: ClipboardList, key: 'templates' as const, adminOnly: false },
-  { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: true },
   { to: '/message-tester', icon: Send, key: 'messageTester' as const, adminOnly: false },
+  { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: true },
   // Backend /infra/* is ADMIN-only; hide the nav item from non-admins (UX + defense-in-depth).
   { to: '/infrastructure', icon: Server, key: 'infrastructure' as const, adminOnly: true },
   { to: '/plugins', icon: Puzzle, key: 'plugins' as const, adminOnly: true },
-  { to: '/ai-agent', icon: Bot, key: 'aiAgent' as const, adminOnly: false },
-  { to: '/drafts', icon: Inbox, key: 'drafts' as const, adminOnly: false },
-  { to: '/learning', icon: GraduationCap, key: 'learning' as const, adminOnly: false },
   { to: '/logs', icon: FileText, key: 'logs' as const, adminOnly: false },
-  { to: '/license', icon: CreditCard, key: 'license' as const, adminOnly: false },
-  { to: '/shipping', icon: Truck, key: 'shipping' as const, adminOnly: false },
 ];
+
+// Keep for any remaining consumers that reference allNavItems
+const allNavItems = [...primaryNavItems, ...settingsNavItems];
 
 const themeIcons = { light: Sun, dark: Moon, system: Monitor };
 
@@ -67,9 +76,14 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
   const themeLabel = t(`theme.${theme}`);
   const activePalette = paletteOptions.find(option => option.value === palette) ?? paletteOptions[0];
 
+  const visiblePrimary = primaryNavItems.filter(item => !item.adminOnly || userRole === 'admin');
+  const visibleSettings = settingsNavItems.filter(item => !item.adminOnly || userRole === 'admin');
+  // Keep allNavItems filtered for any legacy usage
   const navItems = allNavItems.filter(item => !item.adminOnly || userRole === 'admin');
+  void navItems; // suppress unused-var warning
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
@@ -193,7 +207,8 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
         )}
 
         <nav className="sidebar-nav">
-          {navItems.map(({ to, icon: Icon, key }) => {
+          {/* Primary Watomatis items */}
+          {visiblePrimary.map(({ to, icon: Icon, key }) => {
             const label = t(`nav.${key}`);
             return (
               <NavLink
@@ -209,6 +224,40 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
               </NavLink>
             );
           })}
+
+          {/* Divider */}
+          {!isCollapsed && <div className="nav-group-divider" />}
+
+          {/* Settings collapsible group */}
+          <button
+            className={`nav-group-label ${isSettingsOpen ? 'open' : ''}`}
+            onClick={() => setIsSettingsOpen(open => !open)}
+            aria-expanded={isSettingsOpen}
+            title={isCollapsed ? t('nav.settings') : undefined}
+          >
+            <Settings size={16} />
+            {!isCollapsed && <span>{t('nav.settings')}</span>}
+            {!isCollapsed && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.5 }} />}
+          </button>
+
+          <div className={`nav-group-items ${isSettingsOpen ? 'open' : ''}`}>
+            {visibleSettings.map(({ to, icon: Icon, key }) => {
+              const label = t(`nav.${key}`);
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                  end={to === '/'}
+                  onClick={handleNavClick}
+                  title={isCollapsed ? label : undefined}
+                >
+                  <Icon size={20} />
+                  {!isCollapsed && <span>{label}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="sidebar-footer">
