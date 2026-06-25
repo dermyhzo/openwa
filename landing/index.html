@@ -658,6 +658,7 @@
 
       .prob-sol-grid { grid-template-columns: 1fr; }
       .sol-col { border-left: none; border-top: 1px solid var(--border); }
+      .compare-strip { grid-template-columns: 1fr !important; }
 
       .features-grid { grid-template-columns: 1fr 1fr; }
       .steps { grid-template-columns: 1fr 1fr; }
@@ -742,7 +743,7 @@
           sesuai gayamu.
         </h1>
         <p class="hero__sub">
-          Watomatis belajar cara kamu chat ke pelanggan, lalu membalas sendiri. Natural, manusiawi, dan tepat sasaran. Kamu tinggal approve dulu sampai yakin, habis itu biarkan jalan sendiri.
+          Watomatis belajar cara kamu chat ke pelanggan, lalu membalas sendiri. Bukan bot CS generik yang teriak di setiap kalimat, tapi versi kamu yang santai, ringkas, dan manusiawi.
         </p>
         <div class="hero__actions">
           <a class="btn btn--primary btn--lg" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Mulai Sekarang</a>
@@ -762,25 +763,32 @@
             <span class="chat-badge">Live</span>
           </div>
           <div class="messages" role="list" aria-label="Contoh percakapan">
-            <div class="msg msg--in" role="listitem">Kak masih buka ga tokonya?</div>
+            <div class="msg msg--in" role="listitem">kak dress yg item ready ga</div>
             <div class="msg msg--out" role="listitem">
               <span class="msg-label">Watomatis</span>
-              Masih buka kak! Buka sampai jam 9 malam. Mau pesen apa hari ini?
-              <span class="msg-time">21:04 &#10003;&#10003;</span>
+              ready kak, sisa 2 lagi
+              <span class="msg-time">14:32 &#10003;&#10003;</span>
             </div>
-            <div class="msg msg--in" role="listitem">Berapa ongkir ke Medan kak?</div>
+            <div class="msg msg--in" role="listitem">harganya brp ya</div>
             <div class="msg msg--out" role="listitem">
               <span class="msg-label">Watomatis</span>
-              Ongkir ke Medan mulai Rp28.000 (JNE REG), estimasi 3-4 hari. Gratis ongkir kalau order di atas Rp200.000 kak!
-              <span class="msg-time">21:05 &#10003;&#10003;</span>
+              95rb kak, udah termasuk box
+              <span class="msg-time">14:33 &#10003;&#10003;</span>
             </div>
-            <div class="msg msg--in" role="listitem">Oke kak makasih, nanti order ya</div>
+            <div class="msg msg--in" role="listitem">ongkir ke bekasi brp</div>
             <div class="msg msg--out" role="listitem">
               <span class="msg-label">Watomatis</span>
-              Siap kak, ditunggu ordernya! Ada yang mau ditanyain lagi?
-              <span class="msg-time">21:05 &#10003;&#10003;</span>
+              ke bekasi 12rb kak, estimasi 2-3 hari
+              <span class="msg-time">14:33 &#10003;&#10003;</span>
+            </div>
+            <div class="msg msg--in" role="listitem">ok nanti aku order</div>
+            <div class="msg msg--out" role="listitem">
+              <span class="msg-label">Watomatis</span>
+              siap kak, ditunggu ya
+              <span class="msg-time">14:34 &#10003;&#10003;</span>
             </div>
           </div>
+          <p style="margin-top:14px;font-size:11px;color:var(--text-faint);text-align:center;letter-spacing:.01em;">Santai, ringkas, tanpa tanda seru, persis cara kamu sendiri chat.</p>
         </div>
       </div>
     </div>
@@ -831,7 +839,21 @@
     <div class="section-head" data-reveal>
       <span class="tag">Kenapa Watomatis?</span>
       <h2 id="prob-sol-heading">Kamu jualan. Bukan jaga WA 24 jam.</h2>
-      <p>Setiap menit tidak dibalas = pembeli pergi ke kompetitor. Watomatis tutup celah itu.</p>
+      <p>Setiap menit tidak dibalas = pembeli pergi ke kompetitor. Watomatis tutup celah itu, dengan gaya bicara kamu sendiri.</p>
+    </div>
+
+    <!-- Bot vs Watomatis compare -->
+    <div class="compare-strip" data-reveal style="display:grid;grid-template-columns:1fr 1fr;gap:3px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);margin-bottom:32px;">
+      <div style="padding:24px 28px;background:rgba(255,60,60,.04);">
+        <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ff6b6b;margin-bottom:16px;">Bot CS Biasa</p>
+        <p style="font-size:14px;color:var(--text-muted);font-style:italic;line-height:1.7;">"Halo kak selamat datang di toko kami, ada yang bisa kami bantu hari ini kak ada produk terbaru lho kak cek yuk kak promo kak..."</p>
+        <p style="font-size:12px;color:var(--text-faint);margin-top:10px;">Template kaku, lebay, terasa bot banget.</p>
+      </div>
+      <div style="padding:24px 28px;background:rgba(37,211,102,.05);">
+        <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:16px;">Watomatis (gaya kamu)</p>
+        <p style="font-size:14px;color:var(--text);font-style:italic;line-height:1.7;">"ready kak, sisa 2 lagi"<br>"95rb kak, udah termasuk box"<br>"ke bekasi 12rb kak, estimasi 2-3 hari"</p>
+        <p style="font-size:12px;color:var(--text-faint);margin-top:10px;">Santai, ringkas, manusiawi. Persis cara kamu.</p>
+      </div>
     </div>
 
     <div class="prob-sol-grid" data-reveal>
@@ -908,7 +930,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
         </div>
         <h3>Balasan Natural dan Kontekstual</h3>
-        <p>Bukan template. AI memahami maksud pesan dan menjawab sesuai konteks, seperti "Masih buka kak, yuk diorder!"</p>
+        <p>Bukan template. AI memahami maksud pesan dan menjawab sesuai konteks, dengan gaya bicara yang sudah kamu ajarkan.</p>
       </div>
       <div class="feat-card" data-reveal>
         <div class="feat-icon" aria-hidden="true">
