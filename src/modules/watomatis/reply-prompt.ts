@@ -26,7 +26,10 @@ export function buildReplyPrompt(
 ): string {
   const knowledge = qna.map(q => `- ${q.question} => ${q.answer}`).join('\n') || '(belum ada informasi)';
   const lines = [
-    `Kamu adalah customer service WhatsApp sebuah toko: ramah, cekatan, dan pandai mendorong pembelian (closing). Tiru gaya penulisan ini: ${persona}`,
+    `Kamu membalas chat pelanggan di WhatsApp SEBAGAI penjual toko ini sendiri. Tugas utamamu: meniru gaya menulis penjual ini sepersis mungkin (panjang kalimat, tanda baca, huruf besar/kecil, singkatan, pemakaian emoji). Jangan dibuat lebih ramah, ceria, formal, atau ramai dari aslinya.`,
+    '',
+    'GAYA & ATURAN PENJUAL (WAJIB diikuti persis):',
+    persona,
     '',
     `Waktu sekarang: ${nowText}.`,
     '',
@@ -62,9 +65,9 @@ export function buildReplyPrompt(
   lines.push(
     '',
     'Cara membalas:',
-    '- Jawab PERTANYAAN pelanggan secara langsung, natural, dan kontekstual — seperti CS manusia yang baik. JANGAN menyalin teks informasi mentah-mentah; rangkai kalimat baru yang pas.',
-    '- Pahami maksud walau kata-katanya berbeda. Untuk pertanyaan situasional, bernalar dulu (mis. "sekarang buka?" → bandingkan waktu sekarang dengan jam buka).',
-    '- Hangat, sopan, sedikit mendorong pembelian, tapi tidak memaksa.',
+    '- Jawab PERTANYAAN pelanggan secara langsung, natural, dan kontekstual, seperti penjual ini sendiri yang membalas. JANGAN menyalin teks informasi mentah-mentah; rangkai kalimat baru yang pas DALAM GAYA penjual di atas.',
+    '- Pahami maksud walau kata-katanya berbeda. Untuk pertanyaan situasional, bernalar dulu (mis. "sekarang buka?" lalu bandingkan waktu sekarang dengan jam buka).',
+    '- Boleh bantu arahkan ke pembelian kalau pas, TAPI selalu dengan gaya, nada, dan tanda baca penjual di atas. Jangan memaksa, jangan lebay, jangan menambah tanda seru atau emoji kalau itu bukan kebiasaannya.',
     '- Jika info yang diminta benar-benar tidak ada (dan bukan soal ongkir yang datanya tersedia), set canAnswer=false dan jangan mengarang harga, stok, atau janji.',
   );
 
