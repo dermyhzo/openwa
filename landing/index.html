@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Watomatis: CS WhatsApp kamu jalan otomatis, tetap sesuai gayamu. AI agent untuk UMKM Indonesia. Self-hosted, privasi terjaga.">
+  <title>Watomatis: CS WhatsApp Otomatis untuk UMKM</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cg stroke='%2325d366' stroke-width='6' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M11 12 L18.5 35 L24 23 L29.5 35 L37 12'/%3E%3Cpath d='M6.5 16 L11 12 L14.5 16.5'/%3E%3Cpath d='M41.5 16 L37 12 L33.5 16.5'/%3E%3C/g%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       TOKENS
+    ========================================================= */
+    :root {
+      --green:        #25d366;
+      --green-deep:   #128c3e;
+      --green-dim:    rgba(37,211,102,0.12);
+      --green-glow:   rgba(37,211,102,0.35);
+      --bg:           #0b160e;
+      --bg-card:      #111c14;
+      --bg-card2:     #162019;
+      --border:       rgba(37,211,102,0.14);
+      --text:         #e8f0ea;
+      --text-muted:   #9ab8a0;
+      --text-faint:   #5a7a63;
+      --ff-display:   'Fraunces', Georgia, serif;
+      --ff-body:      'Plus Jakarta Sans', sans-serif;
+      --radius:       16px;
+      --radius-sm:    10px;
+    }
+
+    /* =========================================================
+       RESET + BASE
+    ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--ff-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+    ul { list-style: none; }
+
+    /* =========================================================
+       UTILITY
+    ========================================================= */
+    .container {
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .section { padding: 96px 0; }
+    .section--tight { padding: 72px 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--green); background: var(--green-dim);
+      border: 1px solid var(--border);
+      padding: 5px 14px; border-radius: 100px;
+    }
+    .tag::before {
+      content: ''; width: 6px; height: 6px;
+      background: var(--green); border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(.7); }
+    }
+
+    /* =========================================================
+       BACKGROUND TEXTURE
+    ========================================================= */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(37,211,102,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37,211,102,.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .bg-glow {
+      position: fixed; pointer-events: none; z-index: 0;
+      border-radius: 50%;
+    }
+    .bg-glow--1 {
+      width: 700px; height: 700px;
+      top: -200px; left: -200px;
+      background: radial-gradient(circle, rgba(37,211,102,.07) 0%, transparent 70%);
+    }
+    .bg-glow--2 {
+      width: 500px; height: 500px;
+      bottom: 200px; right: -100px;
+      background: radial-gradient(circle, rgba(18,140,62,.08) 0%, transparent 70%);
+    }
+
+    /* =========================================================
+       NAV
+    ========================================================= */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      padding: 16px 0;
+      background: rgba(11,22,14,.85);
+      backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+      transition: border-color .3s;
+    }
+    .nav__inner {
+      display: flex; align-items: center; gap: 32px;
+    }
+    .nav__logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--ff-display); font-weight: 700; font-size: 20px;
+      color: var(--text); letter-spacing: -.02em;
+      flex-shrink: 0;
+    }
+    .nav__logo svg { width: 32px; height: 32px; }
+    .nav__links {
+      display: flex; gap: 28px; margin-left: auto;
+    }
+    .nav__links a {
+      font-size: 14px; font-weight: 500; color: var(--text-muted);
+      transition: color .2s;
+    }
+    .nav__links a:hover { color: var(--text); }
+    .nav__cta {
+      margin-left: 20px;
+      flex-shrink: 0;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
+      font-family: var(--ff-body); font-size: 14px; font-weight: 700;
+      padding: 11px 22px; border-radius: 100px;
+      cursor: pointer; transition: all .22s;
+      border: none; outline: none;
+    }
+    .btn--primary {
+      background: var(--green);
+      color: #0b160e;
+      box-shadow: 0 0 0 0 var(--green-glow);
+    }
+    .btn--primary:hover {
+      background: #2be874;
+      box-shadow: 0 0 28px var(--green-glow);
+      transform: translateY(-1px);
+    }
+    .btn--outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn--outline:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dim);
+    }
+    .btn--lg {
+      font-size: 16px; padding: 16px 32px;
+    }
+
+    /* =========================================================
+       HERO
+    ========================================================= */
+    .hero {
+      position: relative; z-index: 1;
+      padding: 120px 0 96px;
+      overflow: hidden;
+    }
+    .hero__bg-w {
+      position: absolute; right: -4%; top: 50%;
+      transform: translateY(-50%);
+      width: min(640px, 70vw);
+      opacity: .028;
+      pointer-events: none;
+      user-select: none;
+    }
+    .hero__inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px; align-items: center;
+    }
+    .hero__kicker { margin-bottom: 24px; }
+    .hero__headline {
+      font-family: var(--ff-display);
+      font-size: clamp(36px, 5vw, 60px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      color: #fff;
+      margin-bottom: 24px;
+    }
+    .hero__headline em {
+      font-style: italic;
+      color: var(--green);
+    }
+    .hero__sub {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-muted);
+      max-width: 480px;
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+    .hero__actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    /* right side: chat demo */
+    .hero__demo {
+      position: relative; z-index: 1;
+    }
+    .chat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .chat-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(37,211,102,.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .chat-header {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .chat-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--green-deep), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; color: #0b160e;
+      font-family: var(--ff-display);
+      flex-shrink: 0;
+    }
+    .chat-name { font-weight: 700; font-size: 14px; color: var(--text); }
+    .chat-status { font-size: 11px; color: var(--green); }
+    .chat-badge {
+      margin-left: auto;
+      font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--green); background: var(--green-dim);
+      border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 100px;
+    }
+    .messages { display: flex; flex-direction: column; gap: 10px; }
+    .msg {
+      max-width: 80%; font-size: 13px; line-height: 1.55;
+      padding: 10px 14px; border-radius: 14px;
+    }
+    .msg--in {
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .msg--out {
+      background: linear-gradient(135deg, var(--green-deep), var(--green));
+      color: #0b160e;
+      font-weight: 600;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg--out .msg-label {
+      display: block; font-size: 10px; font-weight: 700;
+      opacity: .65; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .msg-time {
+      font-size: 10px; opacity: .5;
+      display: block; text-align: right; margin-top: 4px;
+    }
+
+    /* =========================================================
+       TRUST STRIP
+    ========================================================= */
+    .trust {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+      padding: 24px 0;
+    }
+    .trust__inner {
+      display: flex; gap: 48px;
+      align-items: center; justify-content: center;
+      flex-wrap: wrap;
+    }
+    .trust__item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+    }
+    .trust__icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--green-dim); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green); font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================
+       SECTION HEADERS
+    ========================================================= */
+    .section-head { text-align: center; margin-bottom: 64px; }
+    .section-head h2 {
+      font-family: var(--ff-display);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700; letter-spacing: -.03em;
+      color: #fff; line-height: 1.1;
+      margin-top: 16px;
+    }
+    .section-head p {
+      font-size: 16px; color: var(--text-muted);
+      max-width: 520px; margin: 16px auto 0;
+      line-height: 1.7;
+    }
+
+    /* =========================================================
+       PROBLEM / SOLUTION
+    ========================================================= */
+    .problem-solution {
+      position: relative; z-index: 1;
+    }
+    .prob-sol-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .prob-col, .sol-col {
+      padding: 48px 40px;
+    }
+    .prob-col {
+      background: rgba(255,60,60,.04);
+    }
+    .sol-col {
+      background: rgba(37,211,102,.05);
+      border-left: 1px solid var(--border);
+    }
+    .ps-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      margin-bottom: 24px; display: flex; align-items: center; gap: 8px;
+    }
+    .ps-label--prob { color: #ff6b6b; }
+    .ps-label--sol { color: var(--green); }
+    .ps-label::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .ps-items { display: flex; flex-direction: column; gap: 16px; }
+    .ps-item {
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .ps-item__icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; margin-top: 2px;
+    }
+    .ps-item__icon--prob { background: rgba(255,107,107,.12); }
+    .ps-item__icon--sol  { background: var(--green-dim); }
+    .ps-item p { font-size: 14px; color: var(--text); line-height: 1.55; }
+
+    /* =========================================================
+       FEATURES GRID
+    ========================================================= */
+    .features { position: relative; z-index: 1; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 32px 28px;
+      border-radius: var(--radius-sm);
+      transition: background .25s, border-color .25s, transform .25s;
+      position: relative; overflow: hidden;
+    }
+    .feat-card:hover {
+      background: var(--bg-card2);
+      border-color: rgba(37,211,102,.3);
+      transform: translateY(-3px);
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--green-dim) 0%, transparent 60%);
+      opacity: 0; transition: opacity .3s;
+      pointer-events: none;
+    }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: var(--green-dim); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 20px;
+    }
+    .feat-card h3 {
+      font-size: 16px; font-weight: 700; color: #fff;
+      margin-bottom: 10px; letter-spacing: -.01em;
+    }
+    .feat-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    /* =========================================================
+       CARA KERJA
+    ========================================================= */
+    .cara-kerja { position: relative; z-index: 1; }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px; position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: 12.5%; right: 12.5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), var(--green), transparent);
+      opacity: .3;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 32px 24px;
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .step-num {
+      width: 48px; height: 48px;
+      border: 1.5px solid var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-family: var(--ff-display);
+      font-size: 20px; font-weight: 700;
+      color: var(--green);
+      background: var(--green-dim);
+    }
+    .step-card h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .step-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* =========================================================
+       PRICING
+    ========================================================= */
+    .pricing { position: relative; z-index: 1; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      display: flex; flex-direction: column; gap: 20px;
+      position: relative; transition: border-color .25s, transform .25s;
+    }
+    .price-card:hover {
+      border-color: rgba(37,211,102,.3);
+      transform: translateY(-4px);
+    }
+    .price-card--highlight {
+      border-color: var(--green);
+      background: linear-gradient(160deg, rgba(37,211,102,.08) 0%, var(--bg-card) 60%);
+      box-shadow: 0 0 40px rgba(37,211,102,.15), 0 0 0 1px var(--green);
+      transform: scale(1.02);
+    }
+    .price-card--highlight:hover { transform: scale(1.02) translateY(-4px); }
+    .price-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: #0b160e;
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      padding: 4px 14px; border-radius: 100px;
+      white-space: nowrap;
+    }
+    .price-name { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+    .price-amount {
+      display: flex; align-items: baseline; gap: 4px;
+      flex-wrap: wrap;
+    }
+    .price-amount .rp { font-size: 16px; font-weight: 700; color: var(--text-muted); }
+    .price-amount .num {
+      font-family: var(--ff-display);
+      font-size: clamp(28px, 3.5vw, 36px);
+      font-weight: 700; color: #fff; letter-spacing: -.03em;
+    }
+    .price-amount .per { font-size: 12px; color: var(--text-muted); }
+    .price-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .price-perks { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .price-perk {
+      display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text);
+    }
+    .price-perk-check {
+      color: var(--green); font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    }
+    .btn--price {
+      font-size: 14px; padding: 13px 20px; border-radius: 10px; width: 100%;
+      margin-top: auto;
+    }
+
+    /* =========================================================
+       FAQ
+    ========================================================= */
+    .faq { position: relative; z-index: 1; }
+    .faq-list { display: flex; flex-direction: column; gap: 2px; max-width: 760px; margin: 0 auto; }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .faq-q {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 20px 24px;
+      background: none; border: none; cursor: pointer;
+      font-family: var(--ff-body); font-size: 15px; font-weight: 600; color: var(--text);
+      text-align: left;
+    }
+    .faq-q:hover { color: var(--green); }
+    .faq-chevron {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: var(--green-dim); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--green); font-size: 12px;
+      transition: transform .25s;
+    }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+    .faq-a {
+      max-height: 0; overflow: hidden; transition: max-height .35s ease;
+    }
+    .faq-item.open .faq-a { max-height: 240px; }
+    .faq-a-inner {
+      padding: 0 24px 20px;
+      font-size: 14px; color: var(--text-muted); line-height: 1.7;
+    }
+
+    /* =========================================================
+       CLOSING CTA
+    ========================================================= */
+    .cta-section { position: relative; z-index: 1; padding-bottom: 120px; }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(37,211,102,.1) 0%, rgba(18,140,62,.08) 100%);
+      border: 1px solid var(--green);
+      border-radius: 24px;
+      padding: 80px 48px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(37,211,102,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-box h2 {
+      font-family: var(--ff-display);
+      font-size: clamp(28px, 4vw, 52px);
+      font-weight: 700; letter-spacing: -.03em;
+      color: #fff; margin-bottom: 16px;
+    }
+    .cta-box h2 em { color: var(--green); font-style: italic; }
+    .cta-box p { font-size: 17px; color: var(--text-muted); margin-bottom: 40px; }
+    .cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* =========================================================
+       FOOTER
+    ========================================================= */
+    .footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 40px 0 32px;
+    }
+    .footer__inner {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer__logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--ff-display); font-weight: 700; font-size: 18px; color: var(--text);
+    }
+    .footer__logo svg { width: 28px; height: 28px; }
+    .footer__copy { font-size: 13px; color: var(--text-faint); }
+    .footer__links { display: flex; gap: 20px; }
+    .footer__links a { font-size: 13px; color: var(--text-muted); transition: color .2s; }
+    .footer__links a:hover { color: var(--green); }
+
+    /* =========================================================
+       ANIMATIONS
+    ========================================================= */
+    [data-reveal] {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    [data-reveal].visible {
+      opacity: 1; transform: none;
+    }
+
+    /* =========================================================
+       MOBILE NAV TOGGLE
+    ========================================================= */
+    .nav__burger {
+      display: none; margin-left: auto;
+      background: none; border: none; cursor: pointer;
+      color: var(--text); padding: 6px;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+    /* Mobile nav scrim */
+    .nav__scrim {
+      display: none;
+      position: fixed; inset: 0; top: 64px;
+      background: rgba(0,0,0,.6);
+      z-index: 150;
+    }
+    .nav__scrim.open { display: block; }
+
+    @media (max-width: 900px) {
+      .nav__links { display: none; }
+      .nav__links.open {
+        display: flex; flex-direction: column; gap: 0;
+        position: fixed; top: 64px; left: 0; right: 0; width: 100%;
+        background: #0b160e;
+        border-top: 1px solid var(--border);
+        padding: 8px 0 16px;
+        z-index: 200;
+        height: auto;
+        box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      }
+      .nav__links.open li { width: 100%; }
+      .nav__links.open a {
+        display: flex; align-items: center;
+        font-size: 17px; padding: 14px 24px;
+        min-height: 48px; width: 100%;
+        color: var(--text-muted);
+      }
+      .nav__links.open a:hover { color: var(--green); background: var(--green-dim); }
+      .nav__cta { display: none; }
+      .nav__burger { display: flex; }
+
+      .hero__inner { grid-template-columns: 1fr; gap: 48px; }
+      .hero__bg-w { opacity: .015; right: -10%; width: 80vw; }
+      .hero__headline { font-size: clamp(32px,7vw,48px); }
+      .hero__sub { max-width: 100%; }
+
+      .prob-sol-grid { grid-template-columns: 1fr; }
+      .sol-col { border-left: none; border-top: 1px solid var(--border); }
+
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .steps::before { display: none; }
+      .pricing-grid { grid-template-columns: 1fr 1fr; }
+      .price-card--highlight { transform: none; }
+      .price-card--highlight:hover { transform: translateY(-4px); }
+    }
+
+    @media (max-width: 580px) {
+      .section { padding: 72px 0; }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .cta-box { padding: 48px 24px; }
+      .trust__inner { gap: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Decorative backgrounds -->
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow bg-glow--1" aria-hidden="true"></div>
+<div class="bg-glow bg-glow--2" aria-hidden="true"></div>
+
+<!-- ===== NAV ===== -->
+<nav class="nav" role="navigation" aria-label="Navigasi utama">
+  <div class="container">
+    <div class="nav__inner">
+      <a class="nav__logo" href="#hero" aria-label="Watomatis beranda">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g stroke="#25d366" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M11 12 L18.5 35 L24 23 L29.5 35 L37 12"/>
+            <path d="M6.5 16 L11 12 L14.5 16.5"/>
+            <path d="M41.5 16 L37 12 L33.5 16.5"/>
+          </g>
+        </svg>
+        Watomatis
+      </a>
+
+      <ul class="nav__links" id="navLinks" role="list">
+        <li><a href="#fitur">Fitur</a></li>
+        <li><a href="#cara-kerja">Cara Kerja</a></li>
+        <li><a href="#pricing">Harga</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <a class="btn btn--primary nav__cta" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Coba Gratis</a>
+
+      <button class="nav__burger" id="navBurger" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+<div class="nav__scrim" id="navScrim" aria-hidden="true"></div>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero" aria-labelledby="hero-headline">
+  <!-- Ghost W background -->
+  <svg class="hero__bg-w" aria-hidden="true" viewBox="0 0 48 48" fill="none">
+    <g stroke="#25d366" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M11 12 L18.5 35 L24 23 L29.5 35 L37 12"/>
+      <path d="M6.5 16 L11 12 L14.5 16.5"/>
+      <path d="M41.5 16 L37 12 L33.5 16.5"/>
+    </g>
+  </svg>
+
+  <div class="container">
+    <div class="hero__inner">
+      <!-- Left: copy -->
+      <div>
+        <div class="hero__kicker">
+          <span class="tag">AI WhatsApp Agent untuk UMKM</span>
+        </div>
+        <h1 class="hero__headline" id="hero-headline">
+          CS WhatsApp-mu,<br>
+          jalan <em>otomatis</em><br>
+          sesuai gayamu.
+        </h1>
+        <p class="hero__sub">
+          Watomatis belajar cara kamu chat ke pelanggan, lalu membalas sendiri. Natural, manusiawi, dan tepat sasaran. Kamu tinggal approve dulu sampai yakin, habis itu biarkan jalan sendiri.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary btn--lg" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Mulai Sekarang</a>
+          <a class="btn btn--outline btn--lg" href="#cara-kerja">Lihat Cara Kerjanya</a>
+        </div>
+      </div>
+
+      <!-- Right: chat demo -->
+      <div class="hero__demo" data-reveal>
+        <div class="chat-card">
+          <div class="chat-header">
+            <div class="chat-avatar" aria-hidden="true">W</div>
+            <div>
+              <div class="chat-name">Toko Kita Official</div>
+              <div class="chat-status">Watomatis aktif</div>
+            </div>
+            <span class="chat-badge">Live</span>
+          </div>
+          <div class="messages" role="list" aria-label="Contoh percakapan">
+            <div class="msg msg--in" role="listitem">Kak masih buka ga tokonya?</div>
+            <div class="msg msg--out" role="listitem">
+              <span class="msg-label">Watomatis</span>
+              Masih buka kak! Buka sampai jam 9 malam. Mau pesen apa hari ini?
+              <span class="msg-time">21:04 &#10003;&#10003;</span>
+            </div>
+            <div class="msg msg--in" role="listitem">Berapa ongkir ke Medan kak?</div>
+            <div class="msg msg--out" role="listitem">
+              <span class="msg-label">Watomatis</span>
+              Ongkir ke Medan mulai Rp28.000 (JNE REG), estimasi 3-4 hari. Gratis ongkir kalau order di atas Rp200.000 kak!
+              <span class="msg-time">21:05 &#10003;&#10003;</span>
+            </div>
+            <div class="msg msg--in" role="listitem">Oke kak makasih, nanti order ya</div>
+            <div class="msg msg--out" role="listitem">
+              <span class="msg-label">Watomatis</span>
+              Siap kak, ditunggu ordernya! Ada yang mau ditanyain lagi?
+              <span class="msg-time">21:05 &#10003;&#10003;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRUST STRIP ===== -->
+<div class="trust" aria-label="Keunggulan utama">
+  <div class="container">
+    <div class="trust__inner">
+      <div class="trust__item">
+        <span class="trust__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L10.5 6H15L11.5 9.5L13 14L8 11L3 14L4.5 9.5L1 6H5.5L8 1Z" fill="currentColor"/></svg>
+        </span>
+        Belajar dari chat aslimu
+      </div>
+      <div class="trust__item">
+        <span class="trust__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        Self-hosted, data tidak kemana-mana
+      </div>
+      <div class="trust__item">
+        <span class="trust__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        Balas 24 jam, tanpa kamu online
+      </div>
+      <div class="trust__item">
+        <span class="trust__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        Anti-ban, humanlike sending
+      </div>
+      <div class="trust__item">
+        <span class="trust__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V2h6v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        Cek ongkir otomatis
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROBLEM / SOLUTION ===== -->
+<section class="problem-solution section" id="masalah" aria-labelledby="prob-sol-heading">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Kenapa Watomatis?</span>
+      <h2 id="prob-sol-heading">Kamu jualan. Bukan jaga WA 24 jam.</h2>
+      <p>Setiap menit tidak dibalas = pembeli pergi ke kompetitor. Watomatis tutup celah itu.</p>
+    </div>
+
+    <div class="prob-sol-grid" data-reveal>
+      <!-- PROBLEM -->
+      <div class="prob-col">
+        <div class="ps-label ps-label--prob">Masalah Sekarang</div>
+        <div class="ps-items">
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--prob">&#128553;</div>
+            <p>Chat masuk jam 2 pagi, kamu lagi tidur. Pembeli kabur ke toko lain.</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--prob">&#128553;</div>
+            <p>Jawab pertanyaan yang sama ratusan kali sehari: "masih ada?", "ongkir ke mana?"</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--prob">&#128553;</div>
+            <p>CS kamu pakai template kaku, terasa bot banget, pembeli tidak nyaman.</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--prob">&#128553;</div>
+            <p>Cek ongkir manual satu-satu buang waktu dan rentan salah info.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOLUTION -->
+      <div class="sol-col">
+        <div class="ps-label ps-label--sol">Dengan Watomatis</div>
+        <div class="ps-items">
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--sol">&#9989;</div>
+            <p>Balas otomatis kapanpun, dengan gaya bicara kamu yang sudah dipelajari AI.</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--sol">&#9989;</div>
+            <p>Pertanyaan berulang ditangani sendiri. Kamu fokus ke pesanan yang masuk.</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--sol">&#9989;</div>
+            <p>Balasan terasa natural karena AI belajar dari ribuan pesan aslimu sendiri.</p>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item__icon ps-item__icon--sol">&#9989;</div>
+            <p>Cek ongkir real-time langsung di chat, akurat dan instan tanpa kamu sentuh.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES GRID ===== -->
+<section class="features section" id="fitur" aria-labelledby="fitur-heading">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Fitur Unggulan</span>
+      <h2 id="fitur-heading">Semua yang kamu butuhkan,<br>sudah ada di dalamnya.</h2>
+      <p>Satu platform yang belajar, membalas, dan berkembang bersama bisnismu.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- learning / chat-with-spark -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2M12 13h.01M9 10l1.5 1.5M15 10l-1.5 1.5"/><circle cx="12" cy="10" r="1" fill="#25d366" stroke="none"/><path d="M16 6l.5-1.5.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5z" fill="#25d366" stroke="none"/></svg>
+        </div>
+        <h3>Belajar Gaya CS-mu</h3>
+        <p>Import chat WhatsApp-mu, Watomatis pelajari pola bicara, sapaan, dan karakter balasanmu secara otomatis.</p>
+      </div>
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- clean chat bubble -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+        </div>
+        <h3>Balasan Natural dan Kontekstual</h3>
+        <p>Bukan template. AI memahami maksud pesan dan menjawab sesuai konteks, seperti "Masih buka kak, yuk diorder!"</p>
+      </div>
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- toggle / autopilot -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="3"/><circle cx="16" cy="12" r="2" fill="#25d366" stroke="none"/><path d="M5 6l2 2M5 18l2-2M19 6l-2 2M19 18l-2-2"/></svg>
+        </div>
+        <h3>Semi-Auto lalu Full-Auto</h3>
+        <p>Mulai dari review dulu setiap balasan, lalu ketika kamu sudah puas dan percaya, aktifkan full-auto, biarkan Watomatis jalan sendiri.</p>
+      </div>
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- delivery truck -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <h3>Cek Ongkir Otomatis</h3>
+        <p>Terhubung ke API pengiriman. Pembeli tanya ongkir, Watomatis jawab real-time dengan harga dan estimasi akurat.</p>
+      </div>
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- shield -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <h3>Anti-Ban dan Humanlike</h3>
+        <p>Typing delay alami, daily cap cerdas, dan jam operasional bisnis. Akun WhatsApp-mu aman dari risiko banned.</p>
+      </div>
+      <div class="feat-card" data-reveal>
+        <div class="feat-icon" aria-hidden="true">
+          <!-- server / lock -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><circle cx="18" cy="18" r="2"/><path d="M18 16v-2a2 2 0 0 0-4 0v2"/><rect x="14" y="16" width="8" height="4" rx="1"/></svg>
+        </div>
+        <h3>Self-Hosted, Datamu Privat</h3>
+        <p>Terinstall di komputermu sendiri. Chat pelanggan tidak pernah meninggalkan perangkatmu ke server manapun.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CARA KERJA ===== -->
+<section class="cara-kerja section" id="cara-kerja" aria-labelledby="carakerja-heading">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Cara Kerja</span>
+      <h2 id="carakerja-heading">Set up sekali, jalan selamanya.</h2>
+      <p>Empat langkah mudah dari install sampai agent-mu aktif membalas pelanggan.</p>
+    </div>
+
+    <div class="steps" data-reveal>
+      <div class="step-card">
+        <div class="step-num" aria-label="Langkah 1">1</div>
+        <h3>Sambungkan WhatsApp</h3>
+        <p>Install Watomatis di komputermu, scan QR code, WhatsApp-mu terhubung dalam hitungan detik.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num" aria-label="Langkah 2">2</div>
+        <h3>Import Chat Lama</h3>
+        <p>Export chat WhatsApp-mu dan upload ke Watomatis. AI mulai mempelajari gaya bicaramu dari sana.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num" aria-label="Langkah 3">3</div>
+        <h3>Agent Belajar</h3>
+        <p>Watomatis menganalisis ribuan pesanmu, memahami konteks toko, produk, dan karaktermu sebagai penjual.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num" aria-label="Langkah 4">4</div>
+        <h3>Tayang dan Santai</h3>
+        <p>Aktifkan mode semi-auto atau full-auto. Agent mulai membalas. Kamu fokus ke hal yang lebih penting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRICING ===== -->
+<section class="pricing section" id="pricing" aria-labelledby="pricing-heading">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">Harga</span>
+      <h2 id="pricing-heading">Harga terjangkau,<br>nilai yang jauh lebih besar.</h2>
+      <p>Pilih paket yang paling cocok untuk bisnismu. Tidak ada biaya tersembunyi.</p>
+    </div>
+
+    <div class="pricing-grid" data-reveal>
+      <!-- Bulanan -->
+      <div class="price-card">
+        <div class="price-name">Bulanan</div>
+        <div class="price-amount">
+          <span class="rp">Rp</span>
+          <span class="num">25.000</span>
+          <span class="per">/bulan</span>
+        </div>
+        <div class="price-desc">Cocok untuk kamu yang ingin coba dulu sebelum komitmen lebih panjang.</div>
+        <ul class="price-perks">
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Support via WhatsApp</li>
+        </ul>
+        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+Bulanan" aria-label="Pesan paket bulanan Rp25.000">Pesan Sekarang</a>
+      </div>
+
+      <!-- 6 Bulan -->
+      <div class="price-card">
+        <div class="price-name">6 Bulan</div>
+        <div class="price-amount">
+          <span class="rp">Rp</span>
+          <span class="num">125.000</span>
+          <span class="per">/6 bulan</span>
+        </div>
+        <div class="price-desc">Hemat dibanding bulanan. Ideal untuk seller aktif yang sudah siap go-auto.</div>
+        <ul class="price-perks">
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Support via WhatsApp</li>
+        </ul>
+        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+6+Bulan" aria-label="Pesan paket 6 bulan Rp125.000">Pesan Sekarang</a>
+      </div>
+
+      <!-- Tahunan -->
+      <div class="price-card">
+        <div class="price-name">Tahunan</div>
+        <div class="price-amount">
+          <span class="rp">Rp</span>
+          <span class="num">200.000</span>
+          <span class="per">/tahun</span>
+        </div>
+        <div class="price-desc">Pilihan paling populer untuk seller serius yang ingin efisiensi biaya sepanjang tahun.</div>
+        <ul class="price-perks">
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Prioritas support</li>
+        </ul>
+        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+Tahunan" aria-label="Pesan paket tahunan Rp200.000">Pesan Sekarang</a>
+      </div>
+
+      <!-- Lifetime -->
+      <div class="price-card price-card--highlight" aria-label="Paket terbaik: Lifetime">
+        <div class="price-badge" aria-label="Rekomendasi terbaik">Hemat / Best Value</div>
+        <div class="price-name">Lifetime</div>
+        <div class="price-amount">
+          <span class="rp">Rp</span>
+          <span class="num">499.000</span>
+          <span class="per">sekali bayar</span>
+        </div>
+        <div class="price-desc">Bayar sekali, pakai selamanya. Termasuk semua update seumur hidup. Tidak ada tagihan lagi.</div>
+        <ul class="price-perks">
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update seumur hidup</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Prioritas support eksklusif</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Akses fitur beta lebih awal</li>
+        </ul>
+        <a class="btn btn--primary btn--price" href="mailto:halo@watomatis.id?subject=Paket+Lifetime" aria-label="Pesan paket Lifetime Rp499.000">Ambil Lifetime Sekarang</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="faq section" id="faq" aria-labelledby="faq-heading">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="tag">FAQ</span>
+      <h2 id="faq-heading">Pertanyaan yang sering ditanya.</h2>
+      <p>Belum ada di sini? Hubungi kami langsung via WhatsApp.</p>
+    </div>
+
+    <div class="faq-list" data-reveal role="list">
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-1">
+          Apa Watomatis tidak akan membuat akun WhatsApp saya kena banned?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-1" role="region">
+          <div class="faq-a-inner">
+            Watomatis dirancang dengan fitur anti-ban: typing delay yang natural, batas pesan harian yang aman, dan jam operasional yang bisa kamu sesuaikan. Cara kerjanya mirip seperti manusia mengetik, bukan bulk sender. Risiko banned sangat kecil jika digunakan secara wajar.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-2">
+          Apakah data chat pelanggan saya aman?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-2" role="region">
+          <div class="faq-a-inner">
+            Ya, 100% aman. Watomatis adalah aplikasi self-hosted yang berjalan di komputermu sendiri. Semua data, chat, riwayat percakapan, dan konfigurasi hanya tersimpan di perangkat kamu. Tidak ada data yang dikirim ke server kami atau pihak ketiga manapun.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-3">
+          Berapa lama Watomatis belajar sebelum bisa jalan sendiri?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-3" role="region">
+          <div class="faq-a-inner">
+            Tergantung dari jumlah data chat yang kamu import. Dengan 500 pesan ke atas, AI sudah bisa mengenali pola gaya bicaramu. Mulai dari mode semi-auto dulu, review beberapa puluh balasan, dan kamu bisa switch ke full-auto kalau sudah puas dengan kualitasnya.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-4">
+          Saya bukan orang teknis. Apakah bisa menggunakannya?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-4" role="region">
+          <div class="faq-a-inner">
+            Bisa. Watomatis punya panduan setup langkah demi langkah, dan proses instalasi tidak memerlukan coding apapun. Kalau ada kendala saat setup, tim support kami siap bantu via WhatsApp sampai agent kamu aktif.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-5">
+          Apakah cek ongkir berfungsi untuk semua jasa pengiriman?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-5" role="region">
+          <div class="faq-a-inner">
+            Saat ini mendukung jasa pengiriman utama di Indonesia termasuk JNE, J&T, SiCepat, AnterAja, dan Pos Indonesia. Kami terus menambah layanan baru. Cukup sambungkan API ongkir dari RajaOngkir atau konfigurasi manual dari dashboard Watomatis.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item" role="listitem">
+        <button class="faq-q" aria-expanded="false" aria-controls="faq-a-6">
+          Bagaimana kalau saya ingin mengontrol percakapan tertentu sendiri?
+          <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+        </button>
+        <div class="faq-a" id="faq-a-6" role="region">
+          <div class="faq-a-inner">
+            Mudah. Di mode semi-auto, semua balasan AI masuk ke antrian reviewmu dulu sebelum dikirim. Di mode full-auto, kamu bisa override kapanpun, Watomatis langsung berhenti membalas di chat itu begitu kamu tulis sendiri, dan kembali otomatis setelah kamu selesai.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== CLOSING CTA ===== -->
+<section class="cta-section section--tight" id="mulai" aria-labelledby="cta-heading">
+  <div class="container">
+    <div class="cta-box" data-reveal>
+      <span class="tag" style="margin-bottom:24px">Siap mulai?</span>
+      <h2 id="cta-heading">
+        Biarkan Watomatis yang<br>
+        <em>jaga WhatsApp-mu.</em>
+      </h2>
+      <p>Kamu sudah cukup sibuk. Serahkan CS-nya ke AI yang sudah kenal gayamu.</p>
+      <div class="cta-actions">
+        <a class="btn btn--primary btn--lg" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Chat via WhatsApp</a>
+        <a class="btn btn--outline btn--lg" href="#pricing">Lihat Harga</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer" role="contentinfo">
+  <div class="container">
+    <div class="footer__inner">
+      <div class="footer__logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <g stroke="#25d366" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M11 12 L18.5 35 L24 23 L29.5 35 L37 12"/>
+            <path d="M6.5 16 L11 12 L14.5 16.5"/>
+            <path d="M41.5 16 L37 12 L33.5 16.5"/>
+          </g>
+        </svg>
+        Watomatis
+      </div>
+
+      <p class="footer__copy">&copy; <span id="footerYear">2026</span> Watomatis. Hak cipta dilindungi.</p>
+
+      <nav class="footer__links" aria-label="Tautan footer">
+        <a href="mailto:halo@watomatis.id">Kontak</a>
+        <a href="#">Privasi</a>
+        <a href="#">Syarat &amp; Ketentuan</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Burger menu toggle
+  const burger = document.getElementById('navBurger');
+  const navLinks = document.getElementById('navLinks');
+  const navScrim = document.getElementById('navScrim');
+  function setMenu(open) {
+    navLinks.classList.toggle('open', open);
+    navScrim.classList.toggle('open', open);
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  burger.addEventListener('click', function() {
+    setMenu(!navLinks.classList.contains('open'));
+  });
+  navScrim.addEventListener('click', function() { setMenu(false); });
+  // Close on link click
+  navLinks.querySelectorAll('a').forEach(function(a) {
+    a.addEventListener('click', function() { setMenu(false); });
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-q').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const item = btn.closest('.faq-item');
+      const wasOpen = item.classList.contains('open');
+      // Close all
+      document.querySelectorAll('.faq-item').forEach(function(el) {
+        el.classList.remove('open');
+        el.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+      });
+      // Open clicked if was closed
+      if (!wasOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // Dynamic footer year
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+  // Scroll reveal
+  var reveals = document.querySelectorAll('[data-reveal]');
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(function(el) { observer.observe(el); });
+  } else {
+    // Fallback: show all immediately
+    reveals.forEach(function(el) { el.classList.add('visible'); });
+  }
+</script>
+
+</body>
+</html>

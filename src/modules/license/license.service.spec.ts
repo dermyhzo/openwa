@@ -34,32 +34,37 @@ describe('LicenseStore', () => {
   it('returns default state when file does not exist', async () => {
     const state = await store.get();
     expect(state.status).toBe('inactive');
-    expect(state.plan).toBeNull();
-    expect(state.validUntil).toBeNull();
+    expect(state.tier).toBeNull();
+    expect(state.expiresAt).toBeNull();
   });
 
   it('saves and retrieves partial updates', async () => {
-    await store.save({ plan: 'basic', lastOrderId: 'wtm-basic-123' });
+    await store.save({ tier: 'monthly', lastOrderId: 'wtm-monthly-123' });
     const state = await store.get();
-    expect(state.plan).toBe('basic');
-    expect(state.lastOrderId).toBe('wtm-basic-123');
+    expect(state.tier).toBe('monthly');
+    expect(state.lastOrderId).toBe('wtm-monthly-123');
     expect(state.status).toBe('inactive');
   });
 
-  it('isActive returns false when status is inactive', async () => {
-    await store.save({ status: 'inactive', validUntil: null });
+  it('isActive returns false with no license', async () => {
+    await store.save({ status: 'inactive', expiresAt: null });
     expect(await store.isActive()).toBe(false);
   });
 
-  it('isActive returns true when status=active and validUntil is in the future', async () => {
+  it('isActive returns true with active future-expiry license', async () => {
     const futureDate = new Date(Date.now() + 86400000 * 10).toISOString();
-    await store.save({ status: 'active', validUntil: futureDate });
+    await store.save({ status: 'active', expiresAt: futureDate });
     expect(await store.isActive()).toBe(true);
   });
 
-  it('isActive returns false when validUntil is in the past', async () => {
+  it('isActive returns true for lifetime license (expiresAt null + status active)', async () => {
+    await store.save({ status: 'active', tier: 'lifetime', expiresAt: null });
+    expect(await store.isActive()).toBe(true);
+  });
+
+  it('isActive returns false when expiresAt is in the past', async () => {
     const pastDate = new Date(Date.now() - 86400000).toISOString();
-    await store.save({ status: 'active', validUntil: pastDate });
+    await store.save({ status: 'active', expiresAt: pastDate });
     expect(await store.isActive()).toBe(false);
   });
 });
@@ -73,8 +78,8 @@ describe('DuitkuService — signature', () => {
 
   it('verifyCallback accepts a correctly-signed body', () => {
     const merchantCode = 'TESTCODE';
-    const amount = '99000';
-    const merchantOrderId = 'wtm-basic-1700000000000';
+    const amount = '25000';
+    const merchantOrderId = 'wtm-monthly-1700000000000';
     const merchantKey = 'TESTKEY';
     const signature = md5(`${merchantCode}${amount}${merchantOrderId}${merchantKey}`);
 
@@ -92,8 +97,8 @@ describe('DuitkuService — signature', () => {
   it('verifyCallback rejects a bad signature', () => {
     const result = service.verifyCallback({
       merchantCode: 'TESTCODE',
-      amount: '99000',
-      merchantOrderId: 'wtm-basic-1700000000000',
+      amount: '25000',
+      merchantOrderId: 'wtm-monthly-1700000000000',
       resultCode: '00',
       signature: 'badhash',
     });
@@ -113,7 +118,7 @@ describe('LicenseService', () => {
 
   beforeEach(async () => {
     // Reset license.json before each test so they are independent.
-    // WATOMATIS_DATA_DIR = TMP_DIR/watomatis → store resolves ../license.json → TMP_DIR/license.json
+    // WATOMATIS_DATA_DIR = TMP_DIR/watomatis -> store resolves ../license.json -> TMP_DIR/license.json
     const licenseFile = path.join(TMP_DIR, 'license.json');
     await fs.rm(licenseFile, { force: true });
     store = new LicenseStore();
@@ -121,12 +126,34 @@ describe('LicenseService', () => {
     service = new LicenseService(store, duitku);
   });
 
-  it('getStatus returns inactive initially with plans', async () => {
+  // Required: isActive checks
+  it('isActive() is false with no license', async () => {
+    expect(await service.isActive()).toBe(false);
+  });
+
+  it('isActive() is true with active future-expiry license', async () => {
+    const futureDate = new Date(Date.now() + 86400000 * 30).toISOString();
+    await store.save({ status: 'active', tier: 'monthly', expiresAt: futureDate });
+    expect(await service.isActive()).toBe(true);
+  });
+
+  it('isActive() is true for lifetime license', async () => {
+    await store.save({ status: 'active', tier: 'lifetime', expiresAt: null });
+    expect(await service.isActive()).toBe(true);
+  });
+
+  it('isActive() is false when license is expired', async () => {
+    const pastDate = new Date(Date.now() - 86400000).toISOString();
+    await store.save({ status: 'active', tier: 'monthly', expiresAt: pastDate });
+    expect(await service.isActive()).toBe(false);
+  });
+
+  it('getStatus returns inactive initially', async () => {
     const status = await service.getStatus();
-    expect(status.status).toBe('inactive');
     expect(status.active).toBe(false);
-    expect(status.plans).toHaveProperty('basic');
-    expect(status.plans).toHaveProperty('pro');
+    expect(status.tier).toBeNull();
+    expect(status.lifetime).toBe(false);
+    expect(status.expiresAt).toBeNull();
   });
 
   it('startPayment throws for unknown plan', async () => {
@@ -135,13 +162,12 @@ describe('LicenseService', () => {
     );
   });
 
-  it('handleCallback activates license on success with valid signature', async () => {
-    // Set up a pending order in store
-    await store.save({ plan: 'basic', lastOrderId: 'wtm-basic-1700000000000' });
+  it('handleCallback activates monthly license on success with valid signature', async () => {
+    await store.save({ tier: 'monthly', lastOrderId: 'wtm-monthly-1700000000000' });
 
     const merchantCode = 'TESTCODE';
-    const amount = '99000';
-    const merchantOrderId = 'wtm-basic-1700000000000';
+    const amount = '25000';
+    const merchantOrderId = 'wtm-monthly-1700000000000';
     const merchantKey = 'TESTKEY';
     const signature = md5(`${merchantCode}${amount}${merchantOrderId}${merchantKey}`);
 
@@ -155,17 +181,41 @@ describe('LicenseService', () => {
 
     const state = await store.get();
     expect(state.status).toBe('active');
-    expect(state.validUntil).not.toBeNull();
-    expect(new Date(state.validUntil!).getTime()).toBeGreaterThan(Date.now());
+    expect(state.expiresAt).not.toBeNull();
+    expect(new Date(state.expiresAt!).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('handleCallback activates lifetime license with expiresAt=null', async () => {
+    await store.save({ tier: 'lifetime', lastOrderId: 'wtm-lifetime-1700000000000' });
+
+    const merchantCode = 'TESTCODE';
+    const amount = '499000';
+    const merchantOrderId = 'wtm-lifetime-1700000000000';
+    const merchantKey = 'TESTKEY';
+    const signature = md5(`${merchantCode}${amount}${merchantOrderId}${merchantKey}`);
+
+    await service.handleCallback({
+      merchantCode,
+      amount,
+      merchantOrderId,
+      resultCode: '00',
+      signature,
+    });
+
+    const state = await store.get();
+    expect(state.status).toBe('active');
+    expect(state.tier).toBe('lifetime');
+    expect(state.expiresAt).toBeNull();
+    expect(await service.isActive()).toBe(true);
   });
 
   it('handleCallback does not activate on bad signature', async () => {
-    await store.save({ plan: 'basic', status: 'inactive', validUntil: null });
+    await store.save({ tier: 'monthly', status: 'inactive', expiresAt: null });
 
     await service.handleCallback({
       merchantCode: 'TESTCODE',
-      amount: '99000',
-      merchantOrderId: 'wtm-basic-1700000000000',
+      amount: '25000',
+      merchantOrderId: 'wtm-monthly-1700000000000',
       resultCode: '00',
       signature: 'wrong',
     });
@@ -175,11 +225,11 @@ describe('LicenseService', () => {
   });
 
   it('handleCallback does not activate when resultCode is not 00', async () => {
-    await store.save({ plan: 'basic', status: 'inactive', validUntil: null });
+    await store.save({ tier: 'monthly', status: 'inactive', expiresAt: null });
 
     const merchantCode = 'TESTCODE';
-    const amount = '99000';
-    const merchantOrderId = 'wtm-basic-1700000000000';
+    const amount = '25000';
+    const merchantOrderId = 'wtm-monthly-1700000000000';
     const signature = md5(`${merchantCode}${amount}${merchantOrderId}TESTKEY`);
 
     await service.handleCallback({

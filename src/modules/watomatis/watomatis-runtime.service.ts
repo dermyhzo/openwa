@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { HookManager, HookContext, HookResult } from '../../core/hooks';
 import { IncomingMessage } from '../../engine/interfaces/whatsapp-engine.interface';
 import { MessageService } from '../message/message.service';
+import { LicenseService } from '../license/license.service';
 import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
 import { WatomatisSettingsStore } from './watomatis-settings-store.service';
 import { WatomatisDraftStore } from './watomatis-drafts.service';
@@ -35,6 +36,7 @@ export class WatomatisRuntime implements OnModuleInit {
     private readonly messages: MessageService,
     private readonly shipping: ShippingConnector,
     private readonly settings: WatomatisSettingsStore,
+    private readonly license: LicenseService,
   ) {}
 
   onModuleInit(): void {
@@ -52,6 +54,11 @@ export class WatomatisRuntime implements OnModuleInit {
     }
 
     try {
+      // Server-side license gate: no active license = no replies/drafts
+      if (!(await this.license.isActive())) {
+        return { continue: true };
+      }
+
       const profile = await this.store.get(sessionId);
       if (!profile || profile.mode === 'off' || !profile.apiKey) {
         return { continue: true };

@@ -9,11 +9,23 @@ import { ApiKeyRole } from '../auth/entities/api-key.entity';
 export class LicenseController {
   constructor(private readonly licenseService: LicenseService) {}
 
+  /**
+   * GET /api/license/status
+   * Returns: { active, tier, lifetime, expiresAt }
+   */
+  @Get('status')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Get current license status' })
+  @ApiResponse({ status: 200, description: '{ active, tier, lifetime, expiresAt }' })
+  async getStatus() {
+    return this.licenseService.getStatus();
+  }
+
+  // ponytail: kept the root GET for dashboard/legacy consumers
   @Get()
   @RequireRole(ApiKeyRole.OPERATOR)
-  @ApiOperation({ summary: 'Get current license status and available plans' })
-  @ApiResponse({ status: 200, description: 'License state with active flag and plans' })
-  async getStatus() {
+  @ApiOperation({ summary: 'Get current license status (alias)' })
+  async getStatusAlias() {
     return this.licenseService.getStatus();
   }
 

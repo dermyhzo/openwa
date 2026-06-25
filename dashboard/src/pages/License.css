@@ -157,6 +157,30 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+.license-plan-card--featured {
+  border-color: var(--primary, #25d366);
+  background: color-mix(in srgb, #25d366 6%, var(--bg-white));
+  position: relative;
+}
+
+.license-plan-card--featured:hover {
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.18);
+}
+
+.license-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--primary, #25d366);
+  color: #fff;
+  margin-bottom: 0.5rem;
+  width: fit-content;
+}
+
 .license-plan-header {
   margin-bottom: 0.25rem;
 }

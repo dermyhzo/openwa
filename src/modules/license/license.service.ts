@@ -3,6 +3,13 @@ import { LicenseStore } from './license-store.service';
 import { DuitkuService } from './duitku.service';
 import { PLANS } from './plans';
 
+export interface LicenseStatus {
+  active: boolean;
+  tier: 'monthly' | 'sixmonth' | 'yearly' | 'lifetime' | null;
+  lifetime: boolean;
+  expiresAt: string | null;
+}
+
 @Injectable()
 export class LicenseService {
   constructor(
@@ -10,10 +17,21 @@ export class LicenseService {
     private readonly duitku: DuitkuService,
   ) {}
 
-  async getStatus() {
+  /** Returns true when a paid license is active (and not expired). */
+  async isActive(): Promise<boolean> {
+    return this.store.isActive();
+  }
+
+  async getStatus(): Promise<LicenseStatus> {
     const state = await this.store.get();
     const active = await this.store.isActive();
-    return { ...state, active, plans: PLANS };
+    const tier = (state.tier as LicenseStatus['tier']) ?? null;
+    return {
+      active,
+      tier,
+      lifetime: tier === 'lifetime' && state.expiresAt === null,
+      expiresAt: state.expiresAt,
+    };
   }
 
   async startPayment(plan: string, email: string): Promise<{ paymentUrl: string }> {
@@ -24,18 +42,17 @@ export class LicenseService {
 
     const { paymentUrl, merchantOrderId } = await this.duitku.createInquiry({
       plan,
-      price: planConfig.price,
+      price: planConfig.priceIDR,
       email,
     });
 
-    await this.store.save({ plan, lastOrderId: merchantOrderId });
+    await this.store.save({ tier: plan, lastOrderId: merchantOrderId });
 
     return { paymentUrl };
   }
 
   async handleCallback(body: Record<string, string>): Promise<void> {
     if (!this.duitku.verifyCallback(body)) {
-      // Silently ignore invalid signatures (don't expose verification errors to caller)
       return;
     }
 
@@ -43,7 +60,7 @@ export class LicenseService {
       return;
     }
 
-    // Derive plan from the stored lastOrderId (format: wtm-{plan}-{timestamp})
+    // Derive plan from the order id (format: wtm-{plan}-{timestamp})
     const state = await this.store.get();
     const orderId = body.merchantOrderId ?? state.lastOrderId ?? '';
     const planKey = orderId.replace(/^wtm-/, '').replace(/-\d+$/, '');
@@ -53,7 +70,12 @@ export class LicenseService {
       return;
     }
 
-    const validUntil = new Date(Date.now() + planConfig.durationDays * 86400000).toISOString();
-    await this.store.save({ status: 'active', validUntil });
+    if (planConfig.durationDays === null) {
+      // Lifetime: expiresAt stays null
+      await this.store.save({ status: 'active', tier: planKey, expiresAt: null });
+    } else {
+      const expiresAt = new Date(Date.now() + planConfig.durationDays * 86400000).toISOString();
+      await this.store.save({ status: 'active', tier: planKey, expiresAt });
+    }
   }
 }

@@ -1,10 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CreditCard, CheckCircle, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
-import { licenseApi, type LicenseStatus } from '../services/api';
+import { CreditCard, CheckCircle, Loader2, AlertCircle, ExternalLink, Star } from 'lucide-react';
+import { licenseApi } from '../services/api';
+import type { LicenseStatus } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './License.css';
+
+// ponytail: plans are hardcoded here; if backend ever drives them, move to API response
+const PLANS = [
+  { key: 'monthly',   label: 'Bulanan',  price: 25_000,  duration: '30 hari',              featured: false },
+  { key: 'sixmonth',  label: '6 Bulan',  price: 125_000, duration: '180 hari',             featured: false },
+  { key: 'yearly',    label: 'Tahunan',  price: 200_000, duration: '365 hari',             featured: false },
+  { key: 'lifetime',  label: 'Lifetime', price: 499_000, duration: 'sekali bayar / seumur hidup', featured: true },
+] as const;
+
+function formatRp(n: number) {
+  return 'Rp' + n.toLocaleString('id-ID');
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
 
 export default function License() {
   const { t } = useTranslation();
@@ -21,8 +42,7 @@ export default function License() {
     setLoading(true);
     setError(null);
     try {
-      const data = await licenseApi.getStatus();
-      setStatus(data);
+      setStatus(await licenseApi.getStatus());
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
@@ -30,9 +50,7 @@ export default function License() {
     }
   }, [t]);
 
-  useEffect(() => {
-    void fetchStatus();
-  }, [fetchStatus]);
+  useEffect(() => { void fetchStatus(); }, [fetchStatus]);
 
   const handlePay = async (planKey: string) => {
     setPayLoading(planKey);
@@ -47,17 +65,13 @@ export default function License() {
     }
   };
 
-  const formatValidUntil = (iso: string) => {
-    try {
-      return new Intl.DateTimeFormat(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }).format(new Date(iso));
-    } catch {
-      return iso;
-    }
-  };
+  const statusText = (() => {
+    if (!status) return null;
+    if (!status.active) return t('license.inactive');
+    if (status.lifetime) return t('license.statusLifetime');
+    if (status.expiresAt) return t('license.validUntil', { date: formatDate(status.expiresAt) });
+    return t('license.active');
+  })();
 
   return (
     <div className="license-page">
@@ -81,33 +95,20 @@ export default function License() {
         {!loading && status && (
           <>
             {/* Status card */}
-            <div className={`license-status-card ${status.active ? 'license-status-card--active' : ''}`}>
+            <div className={`license-status-card${status.active ? ' license-status-card--active' : ''}`}>
               <div className="license-status-icon">
                 <CreditCard size={24} />
               </div>
               <div className="license-status-body">
-                <p className="license-status-label">
-                  {t('license.statusLabel')}
-                </p>
+                <p className="license-status-label">{t('license.statusLabel')}</p>
                 {status.active ? (
                   <div className="license-status-active">
                     <CheckCircle size={16} className="license-check-icon" />
-                    <span className="license-badge license-badge--active">
-                      {t('license.active')}
-                    </span>
-                    {status.validUntil && (
-                      <span className="license-valid-until">
-                        {t('license.validUntil', { date: formatValidUntil(status.validUntil) })}
-                      </span>
-                    )}
-                    {status.plan && status.plans[status.plan] && (
-                      <span className="license-current-plan">
-                        · {status.plans[status.plan].label}
-                      </span>
-                    )}
+                    <span className="license-badge license-badge--active">{t('license.active')}</span>
+                    <span className="license-valid-until">{statusText}</span>
                   </div>
                 ) : (
-                  <p className="license-status-inactive">{t('license.inactive')}</p>
+                  <p className="license-status-inactive">{statusText}</p>
                 )}
               </div>
             </div>
@@ -136,23 +137,25 @@ export default function License() {
 
             {/* Plan cards */}
             <div className="license-plans">
-              {Object.entries(status.plans).map(([key, plan]) => (
-                <div key={key} className="license-plan-card">
+              {PLANS.map(plan => (
+                <div key={plan.key} className={`license-plan-card${plan.featured ? ' license-plan-card--featured' : ''}`}>
+                  {plan.featured && (
+                    <div className="license-plan-badge">
+                      <Star size={12} />
+                      {t('license.bestValue')}
+                    </div>
+                  )}
                   <div className="license-plan-header">
                     <span className="license-plan-label">{plan.label}</span>
                   </div>
-                  <div className="license-plan-price">
-                    Rp {plan.price.toLocaleString('id-ID')}
-                  </div>
-                  <div className="license-plan-duration">
-                    / {plan.durationDays} {t('license.days')}
-                  </div>
+                  <div className="license-plan-price">{formatRp(plan.price)}</div>
+                  <div className="license-plan-duration">{plan.duration}</div>
                   <button
                     className="license-pay-btn"
-                    onClick={() => void handlePay(key)}
-                    disabled={payLoading === key}
+                    onClick={() => void handlePay(plan.key)}
+                    disabled={payLoading === plan.key}
                   >
-                    {payLoading === key ? (
+                    {payLoading === plan.key ? (
                       <Loader2 size={15} className="animate-spin" />
                     ) : (
                       <ExternalLink size={15} />

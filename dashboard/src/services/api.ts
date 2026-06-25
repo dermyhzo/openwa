@@ -829,22 +829,15 @@ export const watomatisApi = {
 // License API
 // =============================================================================
 
-export interface LicensePlan {
-  label: string;
-  price: number;
-  durationDays: number;
-}
-
 export interface LicenseStatus {
-  plan: string | null;
-  status: 'inactive' | 'active';
-  validUntil: string | null;
   active: boolean;
-  plans: Record<string, LicensePlan>;
+  tier: 'monthly' | 'sixmonth' | 'yearly' | 'lifetime' | null;
+  lifetime: boolean;
+  expiresAt: string | null;
 }
 
 export const licenseApi = {
-  getStatus: () => request<LicenseStatus>('/license'),
+  getStatus: () => request<LicenseStatus>('/license/status'),
   pay: (plan: string, email?: string) =>
     request<{ paymentUrl: string }>('/license/pay', {
       method: 'POST',

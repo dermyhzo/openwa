@@ -753,7 +753,9 @@
     "bhStartLabel": "Business hours start",
     "bhEndLabel": "Business hours end",
     "readinessSuggestAuto": "You have enough data — consider switching mode to \"Auto\" for hands-free replies.",
-    "readinessCounts": "{{recordings}} recordings · {{qna}} Q&A pairs"
+    "readinessCounts": "{{recordings}} recordings · {{qna}} Q&A pairs",
+    "licenseLockMsg": "License not active. AI features are locked. Choose a plan on the License page.",
+    "licenseLockAction": "Go to License"
   },
   "learning": {
     "title": "Learning",
@@ -793,12 +795,13 @@
     "subtitle": "Manage your subscription and activate your license",
     "statusLabel": "Subscription status",
     "active": "Active",
-    "validUntil": "Valid until {{date}}",
-    "inactive": "Inactive — choose a plan below to subscribe.",
+    "validUntil": "Active until {{date}}",
+    "inactive": "Inactive. Choose a plan below to subscribe.",
     "emailLabel": "Email (optional, for payment receipt)",
     "emailPlaceholder": "you@example.com",
     "payBtn": "Pay via Duitku",
-    "days": "days"
+    "statusLifetime": "Lifetime, active forever",
+    "bestValue": "Best Value"
   },
   "drafts": {
     "title": "Drafts",

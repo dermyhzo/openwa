@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MessageModule } from '../message/message.module';
 import { SessionModule } from '../session/session.module';
+import { LicenseModule } from '../license/license.module';
 import { WatomatisController } from './watomatis.controller';
 import { WatomatisService } from './watomatis.service';
 import { WatomatisStore } from './watomatis-store.service';
@@ -12,7 +13,7 @@ import { WatomatisRecorder } from './watomatis-recorder.service';
 import { ShippingConnector } from './connectors/shipping.connector';
 
 @Module({
-  imports: [MessageModule, SessionModule],
+  imports: [MessageModule, SessionModule, LicenseModule],
   controllers: [WatomatisController],
   providers: [
     WatomatisService,

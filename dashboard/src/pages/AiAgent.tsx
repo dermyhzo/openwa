@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Upload, Loader2, AlertCircle, Zap, Trash2 } from 'lucide-react';
+import { Bot, Upload, Loader2, AlertCircle, Zap, Trash2, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type WatomatisProduct } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
+import { useLicense } from '../hooks/useLicense';
 import './AiAgent.css';
 
 type Provider = 'apimart' | 'openrouter';
@@ -24,6 +26,9 @@ const WANALYSIS_URL =
 export default function AiAgent() {
   const { t } = useTranslation();
   useDocumentTitle(t('aiAgent.title'));
+
+  const navigate = useNavigate();
+  const { active: licenseActive, loading: licenseLoading } = useLicense();
 
   const [provider, setProvider] = useState<Provider>('apimart');
   const [apiKey, setApiKey] = useState('');
@@ -169,6 +174,20 @@ export default function AiAgent() {
       <PageHeader title={t('aiAgent.title')} subtitle={t('aiAgent.subtitle')} />
 
       <div className="ai-agent-content">
+        {/* License lock banner */}
+        {!licenseLoading && !licenseActive && (
+          <div className="license-lock-banner">
+            <Lock size={18} />
+            <span className="license-lock-text">{t('aiAgent.licenseLockMsg')}</span>
+            <button
+              className="license-lock-btn"
+              onClick={() => void navigate('/license')}
+            >
+              {t('aiAgent.licenseLockAction')}
+            </button>
+          </div>
+        )}
+
         {/* LLM Config */}
         <div className="ai-agent-card">
           <h2 className="ai-agent-section-title">
@@ -262,7 +281,7 @@ export default function AiAgent() {
             <button
               className="btn-primary"
               onClick={() => void handleSubmit()}
-              disabled={loading || !file || !apiKey.trim()}
+              disabled={loading || !file || !apiKey.trim() || !licenseActive}
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
               {loading ? t('aiAgent.learning') : t('aiAgent.learnBtn')}
@@ -294,7 +313,7 @@ export default function AiAgent() {
             <button
               className="btn-primary"
               onClick={() => void handleLearnFromWa()}
-              disabled={learningFromWa || !apiKey.trim() || !learnSessionId}
+              disabled={learningFromWa || !apiKey.trim() || !learnSessionId || !licenseActive}
               style={{ flexShrink: 0 }}
             >
               {learningFromWa ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
@@ -611,7 +630,7 @@ export default function AiAgent() {
                 <button
                   className="btn-primary"
                   onClick={() => void handleActivate()}
-                  disabled={activating || !activateSessionId}
+                  disabled={activating || !activateSessionId || !licenseActive}
                 >
                   {activating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                   {activating ? t('aiAgent.activating') : t('aiAgent.activateBtn')}

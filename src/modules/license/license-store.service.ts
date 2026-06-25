@@ -3,17 +3,17 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 export interface LicenseState {
-  plan: string | null;
+  tier: string | null;
   status: 'inactive' | 'active';
-  validUntil: string | null;
+  expiresAt: string | null; // null = lifetime (never expires)
   lastOrderId: string | null;
   updatedAt: string;
 }
 
 const DEFAULT_STATE: LicenseState = {
-  plan: null,
+  tier: null,
   status: 'inactive',
-  validUntil: null,
+  expiresAt: null,
   lastOrderId: null,
   updatedAt: new Date().toISOString(),
 };
@@ -28,7 +28,15 @@ export class LicenseStore {
   async get(): Promise<LicenseState> {
     try {
       const raw = await fs.readFile(this.filePath, 'utf8');
-      return JSON.parse(raw) as LicenseState;
+      const parsed = JSON.parse(raw) as Partial<LicenseState> & { plan?: string; validUntil?: string | null };
+      // Migrate old shape (plan -> tier, validUntil -> expiresAt)
+      return {
+        tier: parsed.tier ?? parsed.plan ?? null,
+        status: parsed.status ?? 'inactive',
+        expiresAt: parsed.expiresAt !== undefined ? parsed.expiresAt : (parsed.validUntil ?? null),
+        lastOrderId: parsed.lastOrderId ?? null,
+        updatedAt: parsed.updatedAt ?? new Date().toISOString(),
+      };
     } catch {
       return { ...DEFAULT_STATE };
     }
@@ -46,12 +54,11 @@ export class LicenseStore {
     return updated;
   }
 
+  /** Returns true when status=active AND (expiresAt is null = lifetime OR expiresAt is in the future). */
   async isActive(): Promise<boolean> {
     const state = await this.get();
-    return (
-      state.status === 'active' &&
-      state.validUntil != null &&
-      new Date(state.validUntil) > new Date()
-    );
+    if (state.status !== 'active') return false;
+    if (state.expiresAt === null) return true; // lifetime
+    return new Date(state.expiresAt) > new Date();
   }
 }
