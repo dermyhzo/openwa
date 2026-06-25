@@ -41,7 +41,7 @@ export function buildReplyPrompt(
     lines.push(
       '',
       'PENGETAHUAN TAMBAHAN (dari dokumen brand):',
-      opts.brandKnowledge.slice(0, 4000),
+      opts.brandKnowledge.slice(0, 16000),
     );
   }
 
