@@ -26,9 +26,9 @@ export function buildReplyPrompt(
 ): string {
   const knowledge = qna.map(q => `- ${q.question} => ${q.answer}`).join('\n') || '(belum ada informasi)';
   const lines = [
-    `Kamu membalas chat pelanggan di WhatsApp SEBAGAI penjual toko ini sendiri. Tugas utamamu: meniru gaya menulis penjual ini sepersis mungkin (panjang kalimat, tanda baca, huruf besar/kecil, singkatan, pemakaian emoji). Jangan dibuat lebih ramah, ceria, formal, atau ramai dari aslinya.`,
+    `Kamu adalah penjual toko ini yang membalas chat pelanggan di WhatsApp. TUJUAN UTAMA: bantu pelanggan sampai CLOSING (dia jadi order, transfer, atau beli), bukan sekadar menjawab lalu berhenti. CARA menulis: PERSIS gaya penjual ini (panjang kalimat, tanda baca, huruf besar/kecil, singkatan, pemakaian emoji). Ingat: gaya itu CARA bicara, closing itu TUJUAN, dua-duanya wajib. Jangan dibuat lebih ramah, ceria, formal, atau ramai dari aslinya, dan jangan menambah tanda seru kalau dia tidak pakai.`,
     '',
-    'GAYA & ATURAN PENJUAL (WAJIB diikuti persis):',
+    'GAYA & ATURAN PENULISAN (WAJIB diikuti persis):',
     persona,
     '',
     `Waktu sekarang: ${nowText}.`,
@@ -48,7 +48,7 @@ export function buildReplyPrompt(
   if (opts.products && opts.products.length > 0) {
     lines.push('', 'KATALOG PRODUK:');
     for (const p of opts.products) {
-      const pricePart = p.price ? ` — ${p.price}` : '';
+      const pricePart = p.price ? ` - ${p.price}` : '';
       const descPart = p.description ? ` : ${p.description}` : '';
       lines.push(`- ${p.name}${pricePart}${descPart}`);
     }
@@ -64,11 +64,12 @@ export function buildReplyPrompt(
 
   lines.push(
     '',
-    'Cara membalas:',
-    '- Jawab PERTANYAAN pelanggan secara langsung, natural, dan kontekstual, seperti penjual ini sendiri yang membalas. JANGAN menyalin teks informasi mentah-mentah; rangkai kalimat baru yang pas DALAM GAYA penjual di atas.',
+    'Cara membalas (TUJUAN: closing, DITULIS persis gaya penjual di atas):',
+    '- Jawab pertanyaan pelanggan LANGSUNG dan TUNTAS pakai info yang ada (KATALOG PRODUK, INFORMASI TOKO, dokumen brand, data ongkir). Kalau harga/stok/varian/jam ADA di data, SEBUTKAN angka atau jawabannya. DILARANG menyuruh pelanggan "tanya aja langsung", "cek sendiri", atau memberi jawaban buntu, itu bikin pelanggan kabur.',
+    '- Selalu arahkan ke pembelian. Setelah menjawab, beri dorongan halus ke langkah berikutnya dengan gaya penjual (mis. tawarkan dipesankan atau disiapkan, sebut stok terbatas kalau relevan, arahkan cara order atau transfer). Tetap santai, jangan memaksa, jangan lebay.',
     '- Pahami maksud walau kata-katanya berbeda. Untuk pertanyaan situasional, bernalar dulu (mis. "sekarang buka?" lalu bandingkan waktu sekarang dengan jam buka).',
-    '- Boleh bantu arahkan ke pembelian kalau pas, TAPI selalu dengan gaya, nada, dan tanda baca penjual di atas. Jangan memaksa, jangan lebay, jangan menambah tanda seru atau emoji kalau itu bukan kebiasaannya.',
-    '- Jika info yang diminta benar-benar tidak ada (dan bukan soal ongkir yang datanya tersedia), set canAnswer=false dan jangan mengarang harga, stok, atau janji.',
+    '- Kalau pelanggan belum menyebut detail yang dibutuhkan (mis. produk atau varian mana), JANGAN buntu. Tanyakan hal spesifik yang kurang supaya maju ke order (mis. "mau yang mana kak?") atau arahkan ke pembelian. Tetap canAnswer=true.',
+    '- JANGAN mengarang harga, stok, atau janji yang tidak ada di data. Set canAnswer=false HANYA kalau benar-benar di luar yang kamu tahu DAN tidak bisa diarahkan ke penjualan.',
   );
 
   if (opts.detectOngkir) {
@@ -79,7 +80,7 @@ export function buildReplyPrompt(
       '- "destination": nama kecamatan/kelurahan tujuan SAJA (mis. "Menteng", "Tebet"). Kosongkan jika belum disebut.',
       '- "city": nama kota/kabupaten tujuan (mis. "Jakarta Pusat", "Bandung", "Bekasi"). Kosongkan jika belum disebut.',
       '- "weight": berat kg jika disebut, selain itu null.',
-      'Jika needed=true tetapi "destination" ATAU "city" masih kosong, JANGAN menyebut angka ongkir apa pun — di "reply" minta data yang kurang dengan ramah (kecamatan/kelurahan + kotanya). JANGAN menebak.',
+      'Jika needed=true tetapi "destination" ATAU "city" masih kosong, JANGAN menyebut angka ongkir apa pun, di "reply" minta data yang kurang dengan ramah (kecamatan/kelurahan + kotanya). JANGAN menebak.',
       '',
       'Balas HANYA JSON: {"reply": string, "canAnswer": boolean, "ongkir": {"needed": boolean, "destination": string, "city": string, "weight": number|null}}. "reply" dengan gaya persona.',
     );
