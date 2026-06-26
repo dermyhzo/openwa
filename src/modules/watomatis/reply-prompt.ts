@@ -9,6 +9,8 @@ export interface ReplyPromptOpts {
   brandKnowledge?: string;
   /** Product catalog entries the agent may reference when answering product questions. */
   products?: { name: string; price?: string; description?: string }[];
+  /** Recent conversation turns (oldest first) so the agent has context and does not re-ask. */
+  history?: { role: 'cust' | 'me'; text: string }[];
 }
 
 /**
@@ -59,6 +61,14 @@ export function buildReplyPrompt(
       '',
       'DATA ONGKIR REAL-TIME (pakai angka ini untuk menjawab pertanyaan ongkir; jangan mengarang angka lain):',
       opts.shippingFacts,
+    );
+  }
+
+  if (opts.history && opts.history.length > 0) {
+    lines.push(
+      '',
+      'PERCAKAPAN SEBELUMNYA (konteks, urut lama ke baru). LANJUTKAN dari sini, JANGAN tanya ulang hal yang sudah dijawab atau sudah dipilih/disebut pelanggan. Kalau pelanggan sudah memilih sesuatu, langsung proses ke langkah berikutnya:',
+      ...opts.history.map(h => `${h.role === 'me' ? 'Saya (penjual)' : 'Pelanggan'}: ${h.text}`),
     );
   }
 

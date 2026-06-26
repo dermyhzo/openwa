@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { HookManager, HookContext, HookResult } from '../../core/hooks';
 import { IncomingMessage } from '../../engine/interfaces/whatsapp-engine.interface';
 import { MessageService } from '../message/message.service';
+import { MessageDirection } from '../message/entities/message.entity';
 import { LicenseService } from '../license/license.service';
 import { WatomatisStore, WatomatisProfile } from './watomatis-store.service';
 import { WatomatisSettingsStore } from './watomatis-settings-store.service';
@@ -69,7 +70,8 @@ export class WatomatisRuntime implements OnModuleInit {
         return { continue: true };
       }
 
-      const { reply, canAnswer } = await this.generateReply(profile, m.body);
+      const history = await this.recentHistory(sessionId, m.chatId, m.body);
+      const { reply, canAnswer } = await this.generateReply(profile, m.body, history);
 
       if (profile.mode === 'auto') {
         const g = profile.guardrails;
@@ -128,9 +130,35 @@ export class WatomatisRuntime implements OnModuleInit {
     return nowHHMM >= hours.start && nowHHMM <= hours.end;
   }
 
+  /** Recent turns for this chat (oldest first), minus the just-arrived message, so the agent has context. */
+  private async recentHistory(
+    sessionId: string,
+    chatId: string,
+    currentBody: string,
+  ): Promise<{ role: 'cust' | 'me'; text: string }[]> {
+    try {
+      const { messages } = await this.messages.getMessages(sessionId, { chatId, limit: 12 });
+      const turns = messages
+        .filter(msg => msg.body?.trim())
+        .reverse()
+        .map(msg => ({
+          role: (msg.direction === MessageDirection.OUTGOING ? 'me' : 'cust') as 'me' | 'cust',
+          text: msg.body.trim(),
+        }));
+      const cur = currentBody.trim();
+      if (turns.length && turns[turns.length - 1].role === 'cust' && turns[turns.length - 1].text === cur) {
+        turns.pop();
+      }
+      return turns.slice(-10);
+    } catch {
+      return [];
+    }
+  }
+
   private async generateReply(
     profile: WatomatisProfile,
     userText: string,
+    history: { role: 'cust' | 'me'; text: string }[] = [],
   ): Promise<{ reply: string; canAnswer: boolean }> {
     const llm = new ApimartChat({
       baseUrl: profile.apiBaseUrl || 'https://api.apimart.ai/v1',
@@ -155,7 +183,7 @@ export class WatomatisRuntime implements OnModuleInit {
       brandKnowledge: profile.brandKnowledge,
       products: profile.products,
     };
-    const res = await llm.json(buildReplyPrompt(persona, qna, nowText, { detectOngkir: shippingEnabled, ...knowledgeOpts }), userText);
+    const res = await llm.json(buildReplyPrompt(persona, qna, nowText, { detectOngkir: shippingEnabled, history, ...knowledgeOpts }), userText);
     let reply = typeof res.reply === 'string' ? res.reply : '';
     let canAnswer = res.canAnswer === true;
 
@@ -177,7 +205,7 @@ export class WatomatisRuntime implements OnModuleInit {
             .map(q => `- ${q.courierName}: Rp${q.price.toLocaleString('id-ID')}${q.estimation ? ` (estimasi ${q.estimation})` : ''}`)
             .join('\n');
           const facts = `Tujuan: ${result.destinationName} · berat ${weight} kg\n${factsList}`;
-          const res2 = await llm.json(buildReplyPrompt(persona, qna, nowText, { shippingFacts: facts, ...knowledgeOpts }), userText);
+          const res2 = await llm.json(buildReplyPrompt(persona, qna, nowText, { shippingFacts: facts, history, ...knowledgeOpts }), userText);
           if (typeof res2.reply === 'string' && res2.reply) {
             reply = res2.reply;
             canAnswer = true;
