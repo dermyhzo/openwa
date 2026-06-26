@@ -80,6 +80,7 @@ export function buildReplyPrompt(
     '- Pahami maksud walau kata-katanya berbeda. Untuk pertanyaan situasional, bernalar dulu (mis. "sekarang buka?" lalu bandingkan waktu sekarang dengan jam buka).',
     '- Kalau pelanggan belum menyebut detail yang dibutuhkan (mis. produk atau varian mana), JANGAN buntu. Tanyakan hal spesifik yang kurang supaya maju ke order (mis. "mau yang mana kak?") atau arahkan ke pembelian. Tetap canAnswer=true.',
     '- JANGAN mengarang harga, stok, atau janji yang tidak ada di data. Set canAnswer=false HANYA kalau benar-benar di luar yang kamu tahu DAN tidak bisa diarahkan ke penjualan.',
+    '- DILARANG KERAS menulis URL, link, alamat web, nomor rekening, atau kontak yang TIDAK ADA persis di data di atas. Jangan pernah mengarang link (termasuk menebak alamat homepage sebuah brand sebagai link pembayaran). Kalau pelanggan minta link/nomor yang tidak kamu punya, JANGAN dibuat-buat, jelaskan langkah resminya saja sesuai data.',
   );
 
   if (opts.detectOngkir) {
