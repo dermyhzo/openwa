@@ -795,7 +795,18 @@ export const watomatisApi = {
   listProfiles: () =>
     request<{ sessionIds: string[] }>('/watomatis/profiles'),
   getProfile: (sessionId: string) =>
-    request<{ mode?: WatomatisMode } | null>(`/watomatis/profile/${sessionId}`),
+    request<{
+      mode?: WatomatisMode;
+      provider?: string;
+      model?: string;
+      apiBaseUrl?: string;
+      fallbackMessage?: string;
+      voiceCard?: LearnVoiceCard;
+      qna?: LearnQna[];
+      brandKnowledge?: string;
+      products?: WatomatisProduct[];
+      guardrails?: WatomatisGuardrails;
+    } | null>(`/watomatis/profile/${sessionId}`),
   listDrafts: (sessionId?: string) => {
     const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
     return request<Draft[]>(`/watomatis/drafts${query}`);

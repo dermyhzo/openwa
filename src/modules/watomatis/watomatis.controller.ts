@@ -118,6 +118,12 @@ export class WatomatisController {
     if (!body.sessionId) {
       throw new BadRequestException('sessionId is required');
     }
+    // Preserve the stored LLM key when the form sends it blank or redacted ("***"),
+    // so editing a saved profile in the dashboard without re-typing the key does not wipe it.
+    if (!body.apiKey || body.apiKey === '***') {
+      const existing = await this.store.get(body.sessionId);
+      if (existing?.apiKey) body.apiKey = existing.apiKey;
+    }
     const saved = await this.store.save(body);
     return redactApiKey(saved);
   }

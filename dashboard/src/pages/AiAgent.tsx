@@ -77,6 +77,28 @@ export default function AiAgent() {
     }).catch(() => {});
   }, []);
 
+  // Load an existing saved profile when a session is selected, so the setup is visible and editable.
+  useEffect(() => {
+    if (!activateSessionId) return;
+    watomatisApi.getProfile(activateSessionId).then(p => {
+      if (!p) return;
+      if (p.provider) setProvider(p.provider as Provider);
+      if (p.model) setModel(p.model);
+      if (p.mode) setActivateMode(p.mode);
+      if (p.fallbackMessage) setFallbackMessage(p.fallbackMessage);
+      if (p.brandKnowledge !== undefined) setBrandKnowledge(p.brandKnowledge || '');
+      if (p.products) setProducts(p.products);
+      if (p.guardrails) {
+        setTypingDelayMs(p.guardrails.typingDelayMs ? String(p.guardrails.typingDelayMs) : '');
+        setDailyCap(p.guardrails.dailyCap ? String(p.guardrails.dailyCap) : '');
+        setBhStart(p.guardrails.businessHours?.start || '');
+        setBhEnd(p.guardrails.businessHours?.end || '');
+      }
+      if (p.voiceCard) setResult({ stats: { turns: 0, me: 0, them: 0 }, voiceCard: p.voiceCard, qna: p.qna || [] });
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activateSessionId]);
+
   useEffect(() => {
     if (result && activateSessionId) {
       void fetchReadiness(activateSessionId);
