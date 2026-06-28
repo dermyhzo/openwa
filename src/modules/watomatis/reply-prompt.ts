@@ -11,6 +11,10 @@ export interface ReplyPromptOpts {
   products?: { name: string; price?: string; description?: string }[];
   /** Recent conversation turns (oldest first) so the agent has context and does not re-ask. */
   history?: { role: 'cust' | 'me'; text: string }[];
+  /** Enable closing-order slot extraction; the model fills an `order` object in the JSON envelope. */
+  captureOrder?: boolean;
+  /** Catalog the model maps ordered products to, by stable `ref`. */
+  orderCatalog?: { ref: string; name: string; price?: string }[];
 }
 
 /**
@@ -43,7 +47,7 @@ export function buildReplyPrompt(
     lines.push(
       '',
       'PENGETAHUAN TAMBAHAN (dari dokumen brand):',
-      opts.brandKnowledge.slice(0, 16000),
+      opts.brandKnowledge.slice(0, 24000),
     );
   }
 
@@ -67,7 +71,7 @@ export function buildReplyPrompt(
   if (opts.history && opts.history.length > 0) {
     lines.push(
       '',
-      'PERCAKAPAN SEBELUMNYA (konteks, urut lama ke baru). LANJUTKAN dari sini, JANGAN tanya ulang hal yang sudah dijawab atau sudah dipilih/disebut pelanggan. Kalau pelanggan sudah memilih sesuatu, langsung proses ke langkah berikutnya:',
+      'RIWAYAT PERCAKAPAN (konteks penuh, urut lama ke baru). Kamu WAJIB ingat semua yang sudah dibahas di sini. LANJUTKAN dari titik terakhir. JANGAN tanya ulang yang sudah dijawab, dan JANGAN mengulang kalimat atau penawaran yang sudah kamu sampaikan. Kalau pelanggan sudah menjawab, memilih, atau sedang kamu pandu langkah-langkah, MAJU ke isi langkah itu atau langkah berikutnya, bukan menawarkan hal yang sama lagi:',
       ...opts.history.map(h => `${h.role === 'me' ? 'Saya (penjual)' : 'Pelanggan'}: ${h.text}`),
     );
   }
@@ -83,17 +87,47 @@ export function buildReplyPrompt(
     '- DILARANG KERAS menulis URL, link, alamat web, nomor rekening, atau kontak yang TIDAK ADA persis di data di atas. Jangan pernah mengarang link (termasuk menebak alamat homepage sebuah brand sebagai link pembayaran). Kalau pelanggan minta link/nomor yang tidak kamu punya, JANGAN dibuat-buat, jelaskan langkah resminya saja sesuai data.',
   );
 
-  if (opts.detectOngkir) {
+  const ongkirInstruction = [
+    '',
+    'CEK ONGKIR: untuk menghitung ongkir dibutuhkan KECAMATAN/KELURAHAN sekaligus KOTA/KABUPATEN tujuan. Isi "ongkir":',
+    '- "needed": true bila ini pertanyaan ongkir, selain itu false.',
+    '- "destination": nama kecamatan/kelurahan tujuan SAJA (mis. "Menteng", "Tebet"). Kosongkan jika belum disebut.',
+    '- "city": nama kota/kabupaten tujuan (mis. "Jakarta Pusat", "Bandung", "Bekasi"). Kosongkan jika belum disebut.',
+    '- "weight": berat kg jika disebut, selain itu null.',
+    'Jika needed=true tetapi "destination" ATAU "city" masih kosong, JANGAN menyebut angka ongkir apa pun, di "reply" minta data yang kurang dengan ramah (kecamatan/kelurahan + kotanya). JANGAN menebak.',
+  ];
+  const ongkirSchema = '"ongkir": {"needed": boolean, "destination": string, "city": string, "weight": number|null}';
+
+  if (opts.captureOrder) {
+    if (opts.orderCatalog && opts.orderCatalog.length > 0) {
+      lines.push('', 'DAFTAR PRODUK BISA DIORDER (pakai kode dalam [] sebagai "ref"):');
+      for (const c of opts.orderCatalog) {
+        lines.push(`- [${c.ref}] ${c.name}${c.price ? ` - ${c.price}` : ''}`);
+      }
+    }
     lines.push(
       '',
-      'CEK ONGKIR: untuk menghitung ongkir dibutuhkan KECAMATAN/KELURAHAN sekaligus KOTA/KABUPATEN tujuan. Isi "ongkir":',
-      '- "needed": true bila ini pertanyaan ongkir, selain itu false.',
-      '- "destination": nama kecamatan/kelurahan tujuan SAJA (mis. "Menteng", "Tebet"). Kosongkan jika belum disebut.',
-      '- "city": nama kota/kabupaten tujuan (mis. "Jakarta Pusat", "Bandung", "Bekasi"). Kosongkan jika belum disebut.',
-      '- "weight": berat kg jika disebut, selain itu null.',
-      'Jika needed=true tetapi "destination" ATAU "city" masih kosong, JANGAN menyebut angka ongkir apa pun, di "reply" minta data yang kurang dengan ramah (kecamatan/kelurahan + kotanya). JANGAN menebak.',
+      'TANGKAP ORDER: kalau pelanggan menuju pembelian, kumpulkan data order sambil tetap membalas natural (jangan kaku seperti formulir). Isi "order":',
+      '- "intent": true bila pelanggan sedang mau beli/order.',
+      '- "items": daftar {"ref": kode produk dari daftar di atas, "quantity": jumlah}. Kosongkan jika belum jelas produknya.',
+      '- "customerName", "phone", "address", "postalCode", "city": isi kalau pelanggan sudah menyebut; kosongkan kalau belum.',
+      '- "paymentMethod": "cod" atau "transfer" sesuai pilihan pelanggan; kosongkan jika belum.',
+      '- "courierPreference": isi kalau pelanggan minta kurir tertentu (mis. "JNE"); kosongkan jika tidak.',
+      '- "readyToBook": true HANYA bila customerName, phone, address, postalCode, city, items, dan paymentMethod SEMUA sudah ada DAN pelanggan setuju order diproses. Selain itu false.',
+      'Jangan mengarang data order. Kalau ada yang kurang, di "reply" minta yang kurang dengan gaya penjual supaya maju ke order.',
+    );
+    if (opts.detectOngkir) lines.push(...ongkirInstruction);
+    const orderSchema =
+      '"order": {"intent": boolean, "readyToBook": boolean, "customerName": string, "phone": string, "address": string, "postalCode": string, "city": string, "paymentMethod": string, "courierPreference": string, "items": [{"ref": string, "quantity": number}]}';
+    const fields = ['"reply": string', '"canAnswer": boolean'];
+    if (opts.detectOngkir) fields.push(ongkirSchema);
+    fields.push(orderSchema);
+    lines.push('', `Balas HANYA JSON: {${fields.join(', ')}}. "reply" ditulis dengan gaya persona.`);
+  } else if (opts.detectOngkir) {
+    lines.push(...ongkirInstruction);
+    lines.push(
       '',
-      'Balas HANYA JSON: {"reply": string, "canAnswer": boolean, "ongkir": {"needed": boolean, "destination": string, "city": string, "weight": number|null}}. "reply" dengan gaya persona.',
+      `Balas HANYA JSON: {"reply": string, "canAnswer": boolean, ${ongkirSchema}}. "reply" dengan gaya persona.`,
     );
   } else {
     lines.push('', 'Balas HANYA JSON: {"reply": string, "canAnswer": boolean}. "reply" ditulis dengan gaya persona.');

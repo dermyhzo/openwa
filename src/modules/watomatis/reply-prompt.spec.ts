@@ -11,7 +11,7 @@ describe('buildReplyPrompt', () => {
     expect(p).toContain('Buka 08.00-21.00 WIB');
     expect(p).toContain('Senin, 14.05');
     expect(p).toContain('INFORMASI TOKO');
-    expect(p).toContain('JANGAN menyalin');
+    expect(p).toContain('PERSIS gaya penjual');
     expect(p).toContain('canAnswer');
   });
 
@@ -25,11 +25,11 @@ describe('buildReplyPrompt', () => {
     expect(p).toContain('Brand kami berdiri sejak 2010.');
   });
 
-  it('truncates brandKnowledge to 4000 chars', () => {
-    const long = 'A'.repeat(5000);
+  it('truncates brandKnowledge to 24000 chars', () => {
+    const long = 'A'.repeat(30000);
     const p = buildReplyPrompt('x', [], 'Rabu, 10.00', { brandKnowledge: long });
-    expect(p).toContain('A'.repeat(4000));
-    expect(p).not.toContain('A'.repeat(4001));
+    expect(p).toContain('A'.repeat(24000));
+    expect(p).not.toContain('A'.repeat(24001));
   });
 
   it('injects products under KATALOG PRODUK with price and description', () => {
@@ -40,7 +40,7 @@ describe('buildReplyPrompt', () => {
       ],
     });
     expect(p).toContain('KATALOG PRODUK:');
-    expect(p).toContain('- Baju Batik — Rp150.000 : Motif parang halus');
+    expect(p).toContain('- Baju Batik - Rp150.000 : Motif parang halus');
     expect(p).toContain('- Celana Formal');
   });
 
@@ -52,5 +52,32 @@ describe('buildReplyPrompt', () => {
   it('omits brandKnowledge section when not provided', () => {
     const p = buildReplyPrompt('x', [], 'Jumat, 08.00');
     expect(p).not.toContain('PENGETAHUAN TAMBAHAN');
+  });
+
+  it('adds the order capture block and order envelope when captureOrder is set', () => {
+    const p = buildReplyPrompt('x', [], 'Senin, 10.00', {
+      captureOrder: true,
+      orderCatalog: [{ ref: 'P1', name: 'Baju Batik', price: 'Rp150.000' }],
+    });
+    expect(p).toContain('TANGKAP ORDER');
+    expect(p).toContain('[P1] Baju Batik - Rp150.000');
+    expect(p).toContain('"order":');
+    expect(p).toContain('readyToBook');
+  });
+
+  it('keeps the base envelope untouched when captureOrder is not set', () => {
+    const p = buildReplyPrompt('x', [], 'Senin, 10.00');
+    expect(p).toContain('Balas HANYA JSON: {"reply": string, "canAnswer": boolean}. "reply" ditulis dengan gaya persona.');
+    expect(p).not.toContain('"order":');
+  });
+
+  it('includes both ongkir and order envelopes when both are enabled', () => {
+    const p = buildReplyPrompt('x', [], 'Senin, 10.00', {
+      detectOngkir: true,
+      captureOrder: true,
+      orderCatalog: [{ ref: 'P1', name: 'Baju' }],
+    });
+    expect(p).toContain('"ongkir":');
+    expect(p).toContain('"order":');
   });
 });
