@@ -39,7 +39,7 @@ export default function Shipping() {
 
   useEffect(() => {
     watomatisSettingsApi.getSettings()
-      .then(data => {
+      .then(async data => {
         setEnabled(data.shipping.enabled);
         setApiKey(data.shipping.apiKey);
         setOriginVillageCode(data.shipping.originVillageCode);
@@ -51,6 +51,15 @@ export default function Shipping() {
         setScalevWarehouseUniqueId(data.scalev?.warehouseUniqueId ?? '');
         setScalevWarehouseId(data.scalev?.warehouseId ?? 0);
         setScalevCatalog(data.scalev?.catalog ?? []);
+        // Repopulate the store dropdown so the saved store shows after a refresh
+        // (the <select> needs its matching <option> to render the selection).
+        if (data.scalev?.apiKey && data.scalev?.storeUniqueId) {
+          try {
+            setStores(await watomatisOrdersApi.stores());
+          } catch {
+            /* leave the dropdown empty; the saved value is still in state and survives a re-save */
+          }
+        }
       })
       .catch(err => {
         setLoadError(err instanceof Error ? err.message : t('common.unknownError'));
