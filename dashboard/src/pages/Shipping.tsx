@@ -44,12 +44,12 @@ export default function Shipping() {
         setOriginVillageCode(data.shipping.originVillageCode);
         setOriginLabel(data.shipping.originLabel ?? '');
         setDefaultWeightKg(data.shipping.defaultWeightKg);
-        setScalevEnabled(data.scalev.enabled);
-        setScalevApiKey(data.scalev.apiKey);
-        setScalevStoreUniqueId(data.scalev.storeUniqueId);
-        setScalevWarehouseUniqueId(data.scalev.warehouseUniqueId);
-        setScalevWarehouseId(data.scalev.warehouseId);
-        setScalevCatalog(data.scalev.catalog ?? []);
+        setScalevEnabled(data.scalev?.enabled ?? false);
+        setScalevApiKey(data.scalev?.apiKey ?? '');
+        setScalevStoreUniqueId(data.scalev?.storeUniqueId ?? '');
+        setScalevWarehouseUniqueId(data.scalev?.warehouseUniqueId ?? '');
+        setScalevWarehouseId(data.scalev?.warehouseId ?? 0);
+        setScalevCatalog(data.scalev?.catalog ?? []);
       })
       .catch(err => {
         setLoadError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -93,7 +93,7 @@ export default function Shipping() {
       await handleSave();
       await watomatisOrdersApi.syncCatalog();
       const fresh = await watomatisSettingsApi.getSettings();
-      setScalevCatalog(fresh.scalev.catalog ?? []);
+      setScalevCatalog(fresh.scalev?.catalog ?? []);
     } catch (err) {
       setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
     }
