@@ -26,6 +26,7 @@ export default function Shipping() {
   >([]);
   const [stores, setStores] = useState<ScalevStore[]>([]);
   const [scalevError, setScalevError] = useState<string | null>(null);
+  const [scalevSuccess, setScalevSuccess] = useState<string | null>(null);
   const [originQuery, setOriginQuery] = useState('');
   const [villageResults, setVillageResults] = useState<VillageItem[]>([]);
   const [searchingVillage, setSearchingVillage] = useState(false);
@@ -71,10 +72,32 @@ export default function Shipping() {
     }
   };
 
+  /** Persists the whole settings payload (shipping + scalev). No banner; callers show their own. */
+  const persistSettings = async () => {
+    await watomatisSettingsApi.saveSettings({
+      shipping: {
+        enabled,
+        apiKey: apiKey.trim(),
+        originVillageCode,
+        originLabel: originLabel || undefined,
+        defaultWeightKg: Number(defaultWeightKg) || 1,
+      },
+      scalev: {
+        enabled: scalevEnabled,
+        apiKey: scalevApiKey.trim(),
+        storeUniqueId: scalevStoreUniqueId,
+        warehouseUniqueId: scalevWarehouseUniqueId,
+        warehouseId: scalevWarehouseId,
+        catalog: scalevCatalog,
+      },
+    });
+  };
+
   const loadStores = async () => {
     setScalevError(null);
+    setScalevSuccess(null);
     try {
-      await handleSave(); // persist the key so the backend can call Scalev
+      await persistSettings(); // persist the key so the backend can call Scalev
       setStores(await watomatisOrdersApi.stores());
     } catch (err) {
       setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -89,13 +112,28 @@ export default function Shipping() {
   };
   const syncCatalog = async () => {
     setScalevError(null);
+    setScalevSuccess(null);
     try {
-      await handleSave();
-      await watomatisOrdersApi.syncCatalog();
+      await persistSettings();
+      const { count } = await watomatisOrdersApi.syncCatalog();
       const fresh = await watomatisSettingsApi.getSettings();
       setScalevCatalog(fresh.scalev?.catalog ?? []);
+      setScalevSuccess(`Katalog tersinkron: ${count} produk.`);
     } catch (err) {
       setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
+    }
+  };
+  const handleSaveScalev = async () => {
+    setSaving(true);
+    setScalevError(null);
+    setScalevSuccess(null);
+    try {
+      await persistSettings();
+      setScalevSuccess('Pengaturan Scalev tersimpan.');
+    } catch (err) {
+      setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -104,23 +142,7 @@ export default function Shipping() {
     setSaveSuccess(null);
     setSaveError(null);
     try {
-      await watomatisSettingsApi.saveSettings({
-        shipping: {
-          enabled,
-          apiKey: apiKey.trim(),
-          originVillageCode,
-          originLabel: originLabel || undefined,
-          defaultWeightKg: Number(defaultWeightKg) || 1,
-        },
-        scalev: {
-          enabled: scalevEnabled,
-          apiKey: scalevApiKey.trim(),
-          storeUniqueId: scalevStoreUniqueId,
-          warehouseUniqueId: scalevWarehouseUniqueId,
-          warehouseId: scalevWarehouseId,
-          catalog: scalevCatalog,
-        },
-      });
+      await persistSettings();
       setSaveSuccess(t('shipping.saveSuccess'));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -266,6 +288,12 @@ export default function Shipping() {
             Scalev (Order otomatis)
           </h2>
 
+          {scalevSuccess && (
+            <div className="ai-agent-activate-success" style={{ marginBottom: '1rem' }}>
+              {scalevSuccess}
+            </div>
+          )}
+
           {scalevError && (
             <div className="error-banner" style={{ marginBottom: '1rem' }}>
               <AlertCircle size={18} />
@@ -330,7 +358,7 @@ export default function Shipping() {
             >
               Sync katalog ({scalevCatalog.length})
             </button>
-            <button className="btn-primary" onClick={() => void handleSave()} disabled={saving}>
+            <button className="btn-primary" onClick={() => void handleSaveScalev()} disabled={saving}>
               {saving ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
               {saving ? t('common.loading') : t('common.save')}
             </button>
