@@ -16,27 +16,31 @@ describe('ScalevConnector', () => {
     global.fetch = undefined as unknown as typeof fetch;
   });
 
-  it('flattens products+variants into a catalog (price + weight in grams)', async () => {
-    mockFetchOnce({
-      code: 200,
-      data: {
-        results: [
-          {
-            name: 'Baju Batik',
-            variants: [
-              { unique_id: 'VAR-1', price: 150000, weight: 250, option1_value: 'M' },
-              { unique_id: 'VAR-2', price: 155000, weight: 260, option1_value: 'L' },
-            ],
-          },
-        ],
-        has_next: false,
-      },
-    });
+  it('flattens detail variants into a catalog (string price parsed, description carried)', async () => {
+    // listProducts gathers ids from the list endpoint, then fetches each product's detail
+    // (only the detail endpoint returns variant price/description).
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      const body = /\/products\/1$/.test(url)
+        ? {
+            code: 200,
+            data: {
+              name: 'Baju Batik',
+              description: 'Batik halus',
+              variants: [
+                { unique_id: 'VAR-1', price: '150000.00', weight: '250', option1_value: 'M', description: '' },
+                { unique_id: 'VAR-2', price: '155000.00', weight: '260', option1_value: 'L', description: 'Ukuran besar' },
+              ],
+            },
+          }
+        : { code: 200, data: { results: [{ id: 1, name: 'Baju Batik' }], has_next: false } };
+      return Promise.resolve({ ok: true, status: 200, json: async () => body, text: async () => '' });
+    }) as unknown as typeof fetch;
+
     const c = new ScalevConnector();
     const items = await c.listProducts(cfgKey);
     expect(items).toEqual([
-      { name: 'Baju Batik (M)', variantUniqueId: 'VAR-1', price: 150000, weightGram: 250 },
-      { name: 'Baju Batik (L)', variantUniqueId: 'VAR-2', price: 155000, weightGram: 260 },
+      { name: 'Baju Batik (M)', variantUniqueId: 'VAR-1', price: 150000, weightGram: 250, description: 'Batik halus' },
+      { name: 'Baju Batik (L)', variantUniqueId: 'VAR-2', price: 155000, weightGram: 260, description: 'Ukuran besar' },
     ]);
   });
 

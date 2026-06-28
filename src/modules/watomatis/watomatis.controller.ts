@@ -371,6 +371,7 @@ export class WatomatisController {
       price: it.price,
       weightGram: it.weightGram,
       variantUniqueId: it.variantUniqueId,
+      description: it.description,
     }));
     await this.settingsStore.save(settings);
     return { count: settings.scalev.catalog.length };

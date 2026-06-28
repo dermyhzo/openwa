@@ -771,6 +771,7 @@ export interface ScalevCatalogEntry {
   price: number;
   weightGram: number;
   variantUniqueId: string;
+  description?: string;
 }
 
 export interface WatomatisScalevSettings {

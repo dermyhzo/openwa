@@ -80,7 +80,7 @@ export default function AiAgent() {
         const have = new Set(prev.map(p => p.name.trim().toLowerCase()));
         const added = catalog
           .filter(c => !have.has(c.name.trim().toLowerCase()))
-          .map(c => ({ name: c.name, price: c.price ? `Rp${c.price.toLocaleString('id-ID')}` : '', description: '' }));
+          .map(c => ({ name: c.name, price: c.price ? `Rp${c.price.toLocaleString('id-ID')}` : '', description: c.description ?? '' }));
         setImportMsg(`Import ${added.length} produk dari Scalev (${catalog.length} total).`);
         return [...prev, ...added];
       });
