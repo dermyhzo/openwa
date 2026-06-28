@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Upload, Loader2, AlertCircle, Zap, Trash2, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { watomatisApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type WatomatisProduct } from '../services/api';
+import { Bot, Upload, Loader2, AlertCircle, Zap, Trash2, Lock, CheckCircle2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { watomatisApi, watomatisSettingsApi, sessionApi, type LearnResult, type Session, type WatomatisMode, type WatomatisProduct } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import { useLicense } from '../hooks/useLicense';
@@ -23,11 +23,15 @@ const PROVIDER_DEFAULT_MODEL: Record<Provider, string> = {
 const WANALYSIS_URL =
   'https://chromewebstore.google.com/detail/wanalysis-free-whatsapp-e/ccooahckdbbckgejinhadmbmgappeclm';
 
+// Mirror the backend mask (prefix + last 4) so the UI can preview a key it just saved.
+const maskKey = (k: string): string => (k.length <= 7 ? '••••' : `${k.slice(0, 3)}••••••${k.slice(-4)}`);
+
 export default function AiAgent() {
   const { t } = useTranslation();
   useDocumentTitle(t('aiAgent.title'));
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { active: licenseActive, loading: licenseLoading } = useLicense();
 
   const [provider, setProvider] = useState<Provider>('apimart');
@@ -39,6 +43,14 @@ export default function AiAgent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LearnResult | null>(null);
+
+  // LLM config save (independent of the learn/activate flow)
+  const [savingLlm, setSavingLlm] = useState(false);
+  const [llmSaved, setLlmSaved] = useState(false);
+  const [llmError, setLlmError] = useState<string | null>(null);
+  const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [savedKeyMask, setSavedKeyMask] = useState('');
+  const [editingKey, setEditingKey] = useState(false);
 
   // Activate card state
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -52,6 +64,30 @@ export default function AiAgent() {
   // Brand knowledge + products
   const [brandKnowledge, setBrandKnowledge] = useState('');
   const [products, setProducts] = useState<WatomatisProduct[]>([]);
+  const [importMsg, setImportMsg] = useState<string>('');
+
+  /** Pull the Scalev-synced catalog into the editable product list (merge by name, keep manual rows). */
+  const importFromScalev = async () => {
+    setImportMsg('');
+    try {
+      const settings = await watomatisSettingsApi.getSettings();
+      const catalog = settings.scalev?.catalog ?? [];
+      if (catalog.length === 0) {
+        setImportMsg('Katalog Scalev kosong. Sync dulu di menu Shipping.');
+        return;
+      }
+      setProducts(prev => {
+        const have = new Set(prev.map(p => p.name.trim().toLowerCase()));
+        const added = catalog
+          .filter(c => !have.has(c.name.trim().toLowerCase()))
+          .map(c => ({ name: c.name, price: c.price ? `Rp${c.price.toLocaleString('id-ID')}` : '', description: '' }));
+        setImportMsg(`Import ${added.length} produk dari Scalev (${catalog.length} total).`);
+        return [...prev, ...added];
+      });
+    } catch (err) {
+      setImportMsg(err instanceof Error ? err.message : 'Gagal import dari Scalev');
+    }
+  };
 
   // Guardrails state
   const [typingDelayMs, setTypingDelayMs] = useState('');
@@ -71,19 +107,29 @@ export default function AiAgent() {
     sessionApi.list().then(list => {
       setSessions(list);
       if (list.length > 0) {
-        setActivateSessionId(list[0].id);
-        setLearnSessionId(list[0].id);
+        // Honor a ?session=<id> deep-link (from the Agents page "Configure" action), else default to the first.
+        const wanted = searchParams.get('session');
+        const initialId = wanted && list.some(s => s.id === wanted) ? wanted : list[0].id;
+        setActivateSessionId(initialId);
+        setLearnSessionId(initialId);
       }
     }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load an existing saved profile when a session is selected, so the setup is visible and editable.
   useEffect(() => {
     if (!activateSessionId) return;
+    setLlmSaved(false);
+    setEditingKey(false);
+    setApiKey('');
     watomatisApi.getProfile(activateSessionId).then(p => {
-      if (!p) return;
+      if (!p) { setHasStoredKey(false); setSavedKeyMask(''); return; }
+      setHasStoredKey(p.apiKey === '***');
+      setSavedKeyMask(p.apiKeyMask || '');
       if (p.provider) setProvider(p.provider as Provider);
       if (p.model) setModel(p.model);
+      if (p.apiBaseUrl) setApiBaseUrl(p.apiBaseUrl);
       if (p.mode) setActivateMode(p.mode);
       if (p.fallbackMessage) setFallbackMessage(p.fallbackMessage);
       if (p.brandKnowledge !== undefined) setBrandKnowledge(p.brandKnowledge || '');
@@ -109,6 +155,33 @@ export default function AiAgent() {
   const handleProviderChange = (p: Provider) => {
     setProvider(p);
     setModel(PROVIDER_DEFAULT_MODEL[p]);
+  };
+
+  // Save just the LLM config (provider/key/model/base URL) to the selected session's profile.
+  // The backend merges, so this preserves any learned voice card, brand docs, products, etc.
+  const handleSaveLlm = async () => {
+    if (!activateSessionId) return;
+    setSavingLlm(true);
+    setLlmSaved(false);
+    setLlmError(null);
+    try {
+      await watomatisApi.saveProfile({
+        sessionId: activateSessionId,
+        provider,
+        apiKey: apiKey.trim() || '***', // blank/"***" => backend keeps the stored key
+        model: model.trim() || PROVIDER_DEFAULT_MODEL[provider],
+        apiBaseUrl: apiBaseUrl.trim() || PROVIDER_BASE[provider],
+      });
+      setLlmSaved(true);
+      setHasStoredKey(true);
+      if (apiKey.trim()) setSavedKeyMask(maskKey(apiKey.trim()));
+      setApiKey('');
+      setEditingKey(false);
+    } catch (err) {
+      setLlmError(err instanceof Error ? err.message : t('common.unknownError'));
+    } finally {
+      setSavingLlm(false);
+    }
   };
 
   const handleLearnFromWa = async () => {
@@ -227,13 +300,49 @@ export default function AiAgent() {
 
           <div className="form-group">
             <label>{t('aiAgent.apiKeyLabel')}</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder={t('aiAgent.apiKeyPlaceholder')}
-              autoComplete="new-password"
-            />
+            {hasStoredKey && !editingKey ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  readOnly
+                  value={savedKeyMask || '••••••••'}
+                  style={{ flex: 1, fontFamily: 'monospace', letterSpacing: '0.04em' }}
+                />
+                <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--primary, #25d366)' }}>
+                  <CheckCircle2 size={15} /> {t('aiAgent.keySavedBadge')}
+                </span>
+                <button
+                  type="button"
+                  className="ai-agent-advanced-toggle"
+                  style={{ flexShrink: 0, margin: 0 }}
+                  onClick={() => { setEditingKey(true); setApiKey(''); setLlmSaved(false); }}
+                >
+                  {t('aiAgent.changeKey')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder={t('aiAgent.apiKeyPlaceholder')}
+                  autoComplete="new-password"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus={editingKey}
+                />
+                {hasStoredKey && editingKey && (
+                  <button
+                    type="button"
+                    className="ai-agent-advanced-toggle"
+                    style={{ marginTop: '0.5rem' }}
+                    onClick={() => { setEditingKey(false); setApiKey(''); }}
+                  >
+                    {t('aiAgent.cancelChangeKey')}
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
           <div className="form-group">
@@ -266,6 +375,45 @@ export default function AiAgent() {
               <small>{t('aiAgent.apiBaseUrlHint')}</small>
             </div>
           )}
+
+          {hasStoredKey && editingKey && !apiKey.trim() && (
+            <p className="ai-agent-hint" style={{ margin: '0.25rem 0 0.75rem' }}>{t('aiAgent.keySavedHint')}</p>
+          )}
+
+          {llmError && (
+            <div className="error-banner" style={{ marginBottom: '0.75rem' }}>
+              <AlertCircle size={18} />
+              <span className="error-banner-text">{llmError}</span>
+            </div>
+          )}
+
+          {llmSaved && (
+            <div className="ai-agent-activate-success" style={{ marginBottom: '0.75rem' }}>
+              {t('aiAgent.llmSaved')}
+            </div>
+          )}
+
+          <div className="ai-agent-actions">
+            <button
+              className="btn-primary"
+              type="button"
+              onClick={() => void handleSaveLlm()}
+              disabled={savingLlm || !activateSessionId || !licenseActive}
+            >
+              {savingLlm ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
+              {savingLlm ? t('common.saving') : t('aiAgent.saveLlmBtn')}
+            </button>
+          </div>
+
+          {activateSessionId
+            ? (
+              <p className="ai-agent-hint" style={{ margin: '0.5rem 0 0' }}>
+                {t('aiAgent.savesToSession', { name: sessions.find(s => s.id === activateSessionId)?.name ?? activateSessionId })}
+              </p>
+            )
+            : (
+              <p className="ai-agent-hint" style={{ margin: '0.5rem 0 0' }}>{t('aiAgent.llmNoSession')}</p>
+            )}
         </div>
 
         {/* Upload */}
@@ -557,13 +705,25 @@ export default function AiAgent() {
                     </button>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setProducts(prev => [...prev, { name: '', price: '', description: '' }])}
-                  style={{ fontSize: '0.875rem', color: 'var(--primary, #25d366)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
-                >
-                  + {t('aiAgent.addProduct')}
-                </button>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setProducts(prev => [...prev, { name: '', price: '', description: '' }])}
+                    style={{ fontSize: '0.875rem', color: 'var(--primary, #25d366)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                  >
+                    + {t('aiAgent.addProduct')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void importFromScalev()}
+                    style={{ fontSize: '0.875rem', color: 'var(--primary, #25d366)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                  >
+                    Import dari Scalev
+                  </button>
+                </div>
+                {importMsg && (
+                  <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>{importMsg}</small>
+                )}
               </div>
 
               {/* Guardrails */}
