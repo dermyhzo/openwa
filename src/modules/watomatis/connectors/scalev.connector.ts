@@ -93,13 +93,18 @@ export class ScalevConnector {
       const id = num((s as Record<string, unknown>)['id']);
       const detail = await this.call(key, 'GET', `/stores/${id}`);
       const d = ('error' in detail ? {} : (detail.data as Record<string, unknown>)) ?? {};
-      const warehouses = Array.isArray(d['warehouses'])
-        ? (d['warehouses'] as Record<string, unknown>[]).map(w => ({
-            id: num(w['id']),
-            uniqueId: str(w['unique_id']) || str(w['uuid']),
-            name: str(w['name']),
-          }))
-        : [];
+      // Scalev returns `warehouse` (singular object, may be null) on the store detail; some
+      // shapes use `warehouses` (array). Accept either so physical sellers get a warehouse id.
+      const whRaw = Array.isArray(d['warehouses'])
+        ? (d['warehouses'] as Record<string, unknown>[])
+        : d['warehouse'] && typeof d['warehouse'] === 'object'
+          ? [d['warehouse'] as Record<string, unknown>]
+          : [];
+      const warehouses = whRaw.map(w => ({
+        id: num(w['id']),
+        uniqueId: str(w['unique_id']) || str(w['uuid']),
+        name: str(w['name']),
+      }));
       stores.push({
         id,
         name: str((s as Record<string, unknown>)['name']),
