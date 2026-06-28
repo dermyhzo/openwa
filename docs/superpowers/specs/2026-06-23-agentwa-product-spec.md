@@ -104,7 +104,7 @@ Lapisan tema/branding tipis di atas fork (logo, nama, warna, judul dashboard) + 
 - **F3 — Runtime semi-auto:** langkah 10 bagian supervised (Inbox Review, draft, approve/edit) pakai otak yang sudah ada + Voice Card.
 - **F4 — Knowledge lanjut:** langkah 7–8 (docs RAG + katalog gambar).
 - **F5 — Readiness → full-auto:** skoring + saran + mode auto.
-- **F6 (nanti):** aggregator pengiriman / closing / order ke Scalev.
+- **F6 — Closing → order ke Scalev (IN-SCOPE, wajib dibangun):** bot menangkap order lengkap dari chat (slot-filling, voice natural) lalu membuat order di Scalev dengan kurir+ongkir otomatis; auto/supervised mengikuti mode. Aggregator pihak ketiga (Everpro/Mengantar/Lincah) **dibatalkan** — fulfillment lewat Scalev. Desain: `2026-06-28-watomatis-scalev-order-design.md`.
 
 Tiap fase menghasilkan sesuatu yang bisa dipakai & dites.
 
@@ -116,4 +116,6 @@ Tiap fase menghasilkan sesuatu yang bisa dipakai & dites.
 
 ## 10. Di luar scope sekarang
 
-Aggregator pengiriman (Everpro/Mengantar/Lincah), closing/order otomatis ke Scalev, multi-tenant SaaS shell + billing, marketplace. Ditambahkan setelah inti chat matang.
+Aggregator pengiriman pihak ketiga (Everpro/Mengantar/Lincah — **dibatalkan**, fulfillment via Scalev), multi-tenant SaaS shell + billing, marketplace. Ditambahkan setelah inti chat matang.
+
+> **Update 2026-06-28:** F6 (closing → order ke Scalev) dipindah dari "nanti" ke **in-scope dan wajib dibangun**. Lihat §8 F6 dan desain `2026-06-28-watomatis-scalev-order-design.md`.
