@@ -66,7 +66,10 @@ export default function AiAgent() {
   const [products, setProducts] = useState<WatomatisProduct[]>([]);
   const [importMsg, setImportMsg] = useState<string>('');
 
-  /** Pull the Scalev-synced catalog into the editable product list (merge by name, keep manual rows). */
+  /**
+   * Pull the Scalev-synced catalog into the editable product list. Adds new products and tops up
+   * price/description on existing rows that are still blank (never clobbers a manual price/desc).
+   */
   const importFromScalev = async () => {
     setImportMsg('');
     try {
@@ -76,14 +79,26 @@ export default function AiAgent() {
         setImportMsg('Katalog Scalev kosong. Sync dulu di menu Shipping.');
         return;
       }
-      setProducts(prev => {
-        const have = new Set(prev.map(p => p.name.trim().toLowerCase()));
-        const added = catalog
-          .filter(c => !have.has(c.name.trim().toLowerCase()))
-          .map(c => ({ name: c.name, price: c.price ? `Rp${c.price.toLocaleString('id-ID')}` : '', description: c.description ?? '' }));
-        setImportMsg(`Import ${added.length} produk dari Scalev (${catalog.length} total).`);
-        return [...prev, ...added];
-      });
+      const next = products.map(p => ({ ...p }));
+      const indexByName = new Map(next.map((p, i) => [p.name.trim().toLowerCase(), i]));
+      let added = 0;
+      let updated = 0;
+      for (const c of catalog) {
+        const priceStr = c.price ? `Rp${c.price.toLocaleString('id-ID')}` : '';
+        const idx = indexByName.get(c.name.trim().toLowerCase());
+        if (idx === undefined) {
+          next.push({ name: c.name, price: priceStr, description: c.description ?? '' });
+          added++;
+        } else {
+          const row = next[idx];
+          let touched = false;
+          if (!row.price && priceStr) { row.price = priceStr; touched = true; }
+          if (!row.description && c.description) { row.description = c.description; touched = true; }
+          if (touched) updated++;
+        }
+      }
+      setProducts(next);
+      setImportMsg(`Import: ${added} baru, ${updated} diperbarui (katalog ${catalog.length} produk).`);
     } catch (err) {
       setImportMsg(err instanceof Error ? err.message : 'Gagal import dari Scalev');
     }
