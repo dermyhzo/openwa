@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
-import { sessionApi, watomatisApi, type Session, type WatomatisMode } from '../services/api';
+import { sessionApi, watomatisApi, licenseApi, type Session, type WatomatisMode } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './Onboarding.css';
@@ -11,6 +11,7 @@ interface StepStatus {
   connected: boolean;
   aiConfigured: boolean;
   activated: boolean;
+  licensed: boolean;
 }
 
 export default function Onboarding() {
@@ -18,7 +19,7 @@ export default function Onboarding() {
   useDocumentTitle(t('onboarding.title'));
 
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<StepStatus>({ connected: false, aiConfigured: false, activated: false });
+  const [status, setStatus] = useState<StepStatus>({ connected: false, aiConfigured: false, activated: false, licensed: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -26,14 +27,16 @@ export default function Onboarding() {
     async function fetchStatus() {
       setLoading(true);
       try {
-        const [sessions, profilesRes] = await Promise.all([
+        const [sessions, profilesRes, licenseRes] = await Promise.all([
           sessionApi.list(),
           watomatisApi.listProfiles(),
+          licenseApi.getStatus().catch(() => ({ active: false })),
         ]);
 
         const connected = sessions.some(
           (s: Session) => s.status === 'ready',
         );
+        const licensed = licenseRes?.active === true;
 
         const sessionIds: string[] = profilesRes?.sessionIds ?? [];
         const aiConfigured = sessionIds.length > 0;
@@ -51,7 +54,7 @@ export default function Onboarding() {
         }
 
         if (!cancelled) {
-          setStatus({ connected, aiConfigured, activated });
+          setStatus({ connected, aiConfigured, activated, licensed });
         }
       } catch {
         // ignore — steps default to false (to-do)
@@ -90,7 +93,7 @@ export default function Onboarding() {
       key: 'license',
       title: t('onboarding.step4Title'),
       desc: t('onboarding.step4Desc'),
-      done: false,
+      done: status.licensed,
       to: '/license',
     },
   ];
