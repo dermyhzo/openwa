@@ -11,6 +11,8 @@ import { WatomatisRuntime } from './watomatis-runtime.service';
 import { WatomatisRecordingStore } from './watomatis-recording-store.service';
 import { WatomatisRecorder } from './watomatis-recorder.service';
 import { ShippingConnector } from './connectors/shipping.connector';
+import { ScalevConnector } from './connectors/scalev.connector';
+import { WatomatisOrderStore } from './watomatis-order-store.service';
 
 @Module({
   imports: [MessageModule, SessionModule, LicenseModule],
@@ -24,6 +26,8 @@ import { ShippingConnector } from './connectors/shipping.connector';
     WatomatisRecordingStore,
     WatomatisRecorder,
     ShippingConnector,
+    ScalevConnector,
+    WatomatisOrderStore,
   ],
   exports: [WatomatisService, WatomatisStore, WatomatisSettingsStore, WatomatisRecordingStore, ShippingConnector],
 })

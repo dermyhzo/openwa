@@ -27,12 +27,23 @@ import type { MinedQna } from './learning/types';
 import { ShippingConnector } from './connectors/shipping.connector';
 import { WatomatisSettingsStore } from './watomatis-settings-store.service';
 import type { WatomatisSettings } from './watomatis-settings-store.service';
+import { ForbiddenException } from '@nestjs/common';
+import { LicenseService } from '../license/license.service';
+import { WatomatisOrderStore, WatomatisOrder } from './watomatis-order-store.service';
+import { ScalevConnector, ScalevStore } from './connectors/scalev.connector';
+import { WatomatisRuntime } from './watomatis-runtime.service';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 const READINESS_MIN_RECORDINGS = 20;
 
 function redactApiKey(profile: WatomatisProfile): WatomatisProfile {
   return { ...profile, apiKey: profile.apiKey ? '***' : '' };
+}
+
+/** A recognisable but non-recoverable preview of a stored key (prefix + last 4), for the UI. */
+function maskApiKey(key: string | undefined): string {
+  if (!key) return '';
+  return key.length <= 7 ? '••••' : `${key.slice(0, 3)}••••••${key.slice(-4)}`;
 }
 
 @ApiTags('watomatis')
@@ -46,6 +57,10 @@ export class WatomatisController {
     private readonly recordingStore: WatomatisRecordingStore,
     private readonly shippingConnector: ShippingConnector,
     private readonly settingsStore: WatomatisSettingsStore,
+    private readonly orderStore: WatomatisOrderStore,
+    private readonly scalev: ScalevConnector,
+    private readonly license: LicenseService,
+    private readonly runtime: WatomatisRuntime,
   ) {}
 
   @Post('learn')
@@ -118,13 +133,20 @@ export class WatomatisController {
     if (!body.sessionId) {
       throw new BadRequestException('sessionId is required');
     }
+    const existing = await this.store.get(body.sessionId);
     // Preserve the stored LLM key when the form sends it blank or redacted ("***"),
     // so editing a saved profile in the dashboard without re-typing the key does not wipe it.
     if (!body.apiKey || body.apiKey === '***') {
-      const existing = await this.store.get(body.sessionId);
       if (existing?.apiKey) body.apiKey = existing.apiKey;
     }
-    const saved = await this.store.save(body);
+    // Merge over any existing profile so a partial update (e.g. saving only the LLM
+    // config) preserves the rest of the profile (voiceCard, qna, brandKnowledge,
+    // products, guardrails, mode) instead of wiping fields that were not sent.
+    const provided = Object.fromEntries(
+      Object.entries(body).filter(([, v]) => v !== undefined),
+    ) as Partial<WatomatisProfile>;
+    const merged = { ...(existing ?? {}), ...provided } as WatomatisProfile;
+    const saved = await this.store.save(merged);
     return redactApiKey(saved);
   }
 
@@ -132,10 +154,12 @@ export class WatomatisController {
   @RequireRole(ApiKeyRole.OPERATOR)
   @ApiOperation({ summary: 'Get agent profile for a WhatsApp session' })
   @ApiResponse({ status: 200, description: 'Profile (apiKey redacted) or null' })
-  async getProfile(@Param('sessionId') id: string): Promise<WatomatisProfile | null> {
+  async getProfile(
+    @Param('sessionId') id: string,
+  ): Promise<(WatomatisProfile & { apiKeyMask: string }) | null> {
     const profile = await this.store.get(id);
     if (!profile) return null;
-    return redactApiKey(profile);
+    return { ...redactApiKey(profile), apiKeyMask: maskApiKey(profile.apiKey) };
   }
 
   @Get('profiles')
@@ -290,5 +314,65 @@ export class WatomatisController {
   @ApiResponse({ status: 200, description: 'Saved settings with plaintext apiKey' })
   async saveSettings(@Body() body: WatomatisSettings): Promise<WatomatisSettings> {
     return this.settingsStore.save(body);
+  }
+
+  @Get('orders')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'List captured orders (optionally filtered by sessionId)' })
+  async listOrders(@Query('sessionId') sessionId?: string): Promise<WatomatisOrder[]> {
+    return this.orderStore.list(sessionId);
+  }
+
+  @Post('orders/:id/book')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Approve a captured order and create it in Scalev' })
+  async bookOrder(@Param('id') id: string): Promise<{ success: true; scalevOrderId: string }> {
+    if (!(await this.license.isActive())) throw new ForbiddenException('License not active');
+    const order = await this.orderStore.get(id);
+    if (!order) throw new NotFoundException(`Order ${id} not found`);
+    const settings = await this.settingsStore.get();
+    const result = await this.runtime.bookToScalev(settings, order);
+    if ('error' in result) {
+      await this.orderStore.update(id, { status: 'failed', lastError: result.error });
+      throw new BadRequestException(result.error);
+    }
+    await this.orderStore.update(id, { status: 'booked', scalevOrderId: result.orderId });
+    return { success: true, scalevOrderId: result.orderId };
+  }
+
+  @Delete('orders/:id')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Delete a captured order' })
+  async deleteOrder(@Param('id') id: string): Promise<{ success: true }> {
+    await this.orderStore.remove(id);
+    return { success: true };
+  }
+
+  @Get('scalev/stores')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'List Scalev stores (with uuid + warehouses) for settings' })
+  async scalevStores(): Promise<ScalevStore[]> {
+    const settings = await this.settingsStore.get();
+    if (!settings.scalev.apiKey) throw new BadRequestException('Scalev apiKey not configured');
+    return this.scalev.listStores(settings.scalev.apiKey);
+  }
+
+  @Post('scalev/sync-catalog')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Pull Scalev products into the local catalog (refs P1..Pn)' })
+  async syncCatalog(): Promise<{ count: number }> {
+    if (!(await this.license.isActive())) throw new ForbiddenException('License not active');
+    const settings = await this.settingsStore.get();
+    if (!settings.scalev.apiKey) throw new BadRequestException('Scalev apiKey not configured');
+    const items = await this.scalev.listProducts(settings.scalev.apiKey);
+    settings.scalev.catalog = items.map((it, idx) => ({
+      ref: `P${idx + 1}`,
+      name: it.name,
+      price: it.price,
+      weightGram: it.weightGram,
+      variantUniqueId: it.variantUniqueId,
+    }));
+    await this.settingsStore.save(settings);
+    return { count: settings.scalev.catalog.length };
   }
 }
