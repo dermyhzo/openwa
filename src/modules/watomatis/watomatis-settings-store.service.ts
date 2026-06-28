@@ -3,6 +3,14 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { encryptSecret, decryptSecret } from './watomatis-crypto';
 
+export interface ScalevCatalogEntry {
+  ref: string;
+  name: string;
+  price: number;
+  weightGram: number;
+  variantUniqueId: string;
+}
+
 export interface WatomatisSettings {
   shipping: {
     enabled: boolean;
@@ -10,6 +18,14 @@ export interface WatomatisSettings {
     originVillageCode: string;
     originLabel?: string;
     defaultWeightKg: number;
+  };
+  scalev: {
+    enabled: boolean;
+    apiKey: string;
+    storeUniqueId: string;
+    warehouseUniqueId: string;
+    warehouseId: number;
+    catalog: ScalevCatalogEntry[];
   };
 }
 
@@ -19,6 +35,14 @@ const DEFAULTS: WatomatisSettings = {
     apiKey: '',
     originVillageCode: '',
     defaultWeightKg: 1,
+  },
+  scalev: {
+    enabled: false,
+    apiKey: '',
+    storeUniqueId: '',
+    warehouseUniqueId: '',
+    warehouseId: 0,
+    catalog: [],
   },
 };
 
@@ -36,12 +60,19 @@ export class WatomatisSettingsStore {
   async get(): Promise<WatomatisSettings> {
     try {
       const raw = await fs.readFile(this.filePath, 'utf8');
-      const parsed = JSON.parse(raw) as WatomatisSettings;
+      const parsed = JSON.parse(raw) as Partial<WatomatisSettings>;
+      const scalev = parsed.scalev ?? structuredClone(DEFAULTS.scalev);
       return {
-        ...parsed,
         shipping: {
+          ...DEFAULTS.shipping,
           ...parsed.shipping,
-          apiKey: decryptSecret(parsed.shipping.apiKey),
+          apiKey: decryptSecret(parsed.shipping?.apiKey ?? ''),
+        },
+        scalev: {
+          ...DEFAULTS.scalev,
+          ...scalev,
+          apiKey: decryptSecret(scalev.apiKey ?? ''),
+          catalog: Array.isArray(scalev.catalog) ? scalev.catalog : [],
         },
       };
     } catch {
@@ -49,17 +80,18 @@ export class WatomatisSettingsStore {
     }
   }
 
-  /** Persists settings with shipping.apiKey encrypted at rest. Returns plaintext to caller. */
-  async save(settings: WatomatisSettings): Promise<WatomatisSettings> {
+  /** Persists settings with apiKeys encrypted at rest. Tolerates a payload that omits `scalev`. */
+  async save(
+    settings: Omit<WatomatisSettings, 'scalev'> & { scalev?: WatomatisSettings['scalev'] },
+  ): Promise<WatomatisSettings> {
     await fs.mkdir(this.dir, { recursive: true });
+    const scalev = settings.scalev ?? structuredClone(DEFAULTS.scalev);
     const onDisk: WatomatisSettings = {
       ...settings,
-      shipping: {
-        ...settings.shipping,
-        apiKey: encryptSecret(settings.shipping.apiKey),
-      },
+      shipping: { ...settings.shipping, apiKey: encryptSecret(settings.shipping.apiKey) },
+      scalev: { ...scalev, apiKey: encryptSecret(scalev.apiKey) },
     };
     await fs.writeFile(this.filePath, JSON.stringify(onDisk, null, 2), 'utf8');
-    return settings; // plaintext to caller
+    return { ...settings, scalev }; // plaintext to caller
   }
 }

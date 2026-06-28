@@ -104,4 +104,32 @@ describe('WatomatisSettingsStore', () => {
     const fetched = await store.get();
     expect(fetched.shipping.apiKey).toBe('legacy-plaintext');
   });
+
+  it('round-trips scalev settings with the apiKey encrypted at rest', async () => {
+    await store.save({
+      shipping: { enabled: false, apiKey: '', originVillageCode: '', defaultWeightKg: 1 },
+      scalev: {
+        enabled: true,
+        apiKey: 'sk-secret',
+        storeUniqueId: 'S-1',
+        warehouseUniqueId: 'W-1',
+        warehouseId: 3,
+        catalog: [{ ref: 'P1', name: 'Baju', price: 150000, weightGram: 250, variantUniqueId: 'VAR-1' }],
+      },
+    });
+    const onDisk = JSON.parse(
+      await fs.readFile(path.join(TMP_DIR, 'settings.json'), 'utf8'),
+    ) as WatomatisSettings;
+    expect(onDisk.scalev.apiKey).not.toBe('sk-secret'); // encrypted
+    const loaded = await store.get();
+    expect(loaded.scalev.apiKey).toBe('sk-secret'); // decrypted
+    expect(loaded.scalev.catalog[0].variantUniqueId).toBe('VAR-1');
+  });
+
+  it('defaults scalev to disabled when the settings file is absent', async () => {
+    await fs.rm(path.join(TMP_DIR, 'settings.json'), { force: true });
+    const loaded = await store.get();
+    expect(loaded.scalev.enabled).toBe(false);
+    expect(loaded.scalev.catalog).toEqual([]);
+  });
 });
