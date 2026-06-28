@@ -29,7 +29,7 @@ describe('WatomatisSettingsStore', () => {
   });
 
   it('save→get roundtrip preserves all fields', async () => {
-    const input: WatomatisSettings = {
+    const input = {
       shipping: {
         enabled: true,
         apiKey: 'api-co-id-secret',
@@ -86,7 +86,7 @@ describe('WatomatisSettingsStore', () => {
   });
 
   it('legacy plaintext apiKey on disk is returned unchanged by get()', async () => {
-    const legacySettings: WatomatisSettings = {
+    const legacySettings = {
       shipping: {
         enabled: true,
         apiKey: 'legacy-plaintext',

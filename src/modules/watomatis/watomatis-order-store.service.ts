@@ -63,7 +63,7 @@ export class WatomatisOrderStore {
     }
     for (const k of ['customerName', 'phone', 'address', 'postalCode', 'city', 'paymentMethod', 'courierPreference'] as const) {
       const v = partial[k];
-      if (typeof v === 'string' && v.trim()) (order as Record<string, unknown>)[k] = v.trim();
+      if (typeof v === 'string' && v.trim()) (order as unknown as Record<string, unknown>)[k] = v.trim();
     }
     if (Array.isArray(partial.items) && partial.items.length > 0) {
       order.items = partial.items.filter(i => i && i.ref && i.quantity > 0);
