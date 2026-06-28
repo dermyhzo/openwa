@@ -1,0 +1,16 @@
+.orders-page { padding: 24px; max-width: 900px; }
+.orders-list { display: grid; gap: 12px; margin-top: 16px; }
+.order-card { border: 1px solid var(--border-color, #e5e7eb); border-radius: 12px; padding: 16px; background: var(--card-bg, #fff); }
+.order-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.order-badge { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #eef2ff; }
+.order-badge.booked { background: #dcfce7; }
+.order-badge.failed { background: #fee2e2; }
+.order-badge.ready { background: #fef9c3; }
+.order-body { font-size: 14px; color: var(--text-secondary, #4b5563); display: grid; gap: 2px; }
+.order-ref { color: #16a34a; font-weight: 600; }
+.order-err { color: #dc2626; }
+.order-actions { margin-top: 12px; display: flex; gap: 8px; }
+.order-actions button { padding: 8px 14px; border-radius: 8px; border: none; background: var(--primary, #16a34a); color: #fff; cursor: pointer; }
+.order-actions button.ghost { background: transparent; color: var(--text-secondary, #4b5563); border: 1px solid var(--border-color, #e5e7eb); }
+.orders-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; }
+.orders-empty { color: var(--text-secondary, #6b7280); }

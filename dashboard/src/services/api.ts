@@ -765,8 +765,26 @@ export interface WatomatisShippingSettings {
   defaultWeightKg: number;
 }
 
+export interface ScalevCatalogEntry {
+  ref: string;
+  name: string;
+  price: number;
+  weightGram: number;
+  variantUniqueId: string;
+}
+
+export interface WatomatisScalevSettings {
+  enabled: boolean;
+  apiKey: string;
+  storeUniqueId: string;
+  warehouseUniqueId: string;
+  warehouseId: number;
+  catalog: ScalevCatalogEntry[];
+}
+
 export interface WatomatisSettings {
   shipping: WatomatisShippingSettings;
+  scalev: WatomatisScalevSettings;
 }
 
 export const watomatisSettingsApi = {
@@ -776,6 +794,40 @@ export const watomatisSettingsApi = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
+};
+
+export interface WatomatisOrder {
+  id: string;
+  sessionId: string;
+  chatId: string;
+  customerName?: string;
+  phone?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  paymentMethod?: 'cod' | 'transfer';
+  items: { ref: string; quantity: number }[];
+  status: 'collecting' | 'ready' | 'booked' | 'failed';
+  scalevOrderId?: string;
+  lastError?: string;
+  updatedAt: string;
+}
+
+export interface ScalevStore {
+  id: number;
+  name: string;
+  uniqueId: string;
+  warehouses: { id: number; uniqueId: string; name: string }[];
+}
+
+export const watomatisOrdersApi = {
+  list: (sessionId?: string) =>
+    request<WatomatisOrder[]>(`/watomatis/orders${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`),
+  book: (id: string) =>
+    request<{ success: true; scalevOrderId: string }>(`/watomatis/orders/${id}/book`, { method: 'POST' }),
+  remove: (id: string) => request<void>(`/watomatis/orders/${id}`, { method: 'DELETE' }),
+  syncCatalog: () => request<{ count: number }>('/watomatis/scalev/sync-catalog', { method: 'POST' }),
+  stores: () => request<ScalevStore[]>('/watomatis/scalev/stores'),
 };
 
 export const watomatisApi = {
@@ -790,7 +842,7 @@ export const watomatisApi = {
     if (opts.apiBaseUrl) form.append('apiBaseUrl', opts.apiBaseUrl);
     return request<LearnResult>('/watomatis/learn', { method: 'POST', body: form });
   },
-  saveProfile: (body: SaveProfileBody) =>
+  saveProfile: (body: Partial<SaveProfileBody> & { sessionId: string }) =>
     request<unknown>('/watomatis/profile', { method: 'POST', body: JSON.stringify(body) }),
   listProfiles: () =>
     request<{ sessionIds: string[] }>('/watomatis/profiles'),
@@ -800,6 +852,8 @@ export const watomatisApi = {
       provider?: string;
       model?: string;
       apiBaseUrl?: string;
+      apiKey?: string;
+      apiKeyMask?: string;
       fallbackMessage?: string;
       voiceCard?: LearnVoiceCard;
       qna?: LearnQna[];

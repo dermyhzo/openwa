@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Truck, Loader2, AlertCircle } from 'lucide-react';
-import { watomatisSettingsApi, watomatisApi, type VillageItem } from '../services/api';
+import { Truck, Loader2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { watomatisSettingsApi, watomatisApi, watomatisOrdersApi, type VillageItem, type ScalevStore } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './AiAgent.css';
@@ -16,6 +16,16 @@ export default function Shipping() {
   const [originVillageCode, setOriginVillageCode] = useState('');
   const [originLabel, setOriginLabel] = useState('');
   const [defaultWeightKg, setDefaultWeightKg] = useState(1);
+  const [scalevEnabled, setScalevEnabled] = useState(false);
+  const [scalevApiKey, setScalevApiKey] = useState('');
+  const [scalevStoreUniqueId, setScalevStoreUniqueId] = useState('');
+  const [scalevWarehouseUniqueId, setScalevWarehouseUniqueId] = useState('');
+  const [scalevWarehouseId, setScalevWarehouseId] = useState(0);
+  const [scalevCatalog, setScalevCatalog] = useState<
+    { ref: string; name: string; price: number; weightGram: number; variantUniqueId: string }[]
+  >([]);
+  const [stores, setStores] = useState<ScalevStore[]>([]);
+  const [scalevError, setScalevError] = useState<string | null>(null);
   const [originQuery, setOriginQuery] = useState('');
   const [villageResults, setVillageResults] = useState<VillageItem[]>([]);
   const [searchingVillage, setSearchingVillage] = useState(false);
@@ -34,6 +44,12 @@ export default function Shipping() {
         setOriginVillageCode(data.shipping.originVillageCode);
         setOriginLabel(data.shipping.originLabel ?? '');
         setDefaultWeightKg(data.shipping.defaultWeightKg);
+        setScalevEnabled(data.scalev.enabled);
+        setScalevApiKey(data.scalev.apiKey);
+        setScalevStoreUniqueId(data.scalev.storeUniqueId);
+        setScalevWarehouseUniqueId(data.scalev.warehouseUniqueId);
+        setScalevWarehouseId(data.scalev.warehouseId);
+        setScalevCatalog(data.scalev.catalog ?? []);
       })
       .catch(err => {
         setLoadError(err instanceof Error ? err.message : t('common.unknownError'));
@@ -55,6 +71,34 @@ export default function Shipping() {
     }
   };
 
+  const loadStores = async () => {
+    setScalevError(null);
+    try {
+      await handleSave(); // persist the key so the backend can call Scalev
+      setStores(await watomatisOrdersApi.stores());
+    } catch (err) {
+      setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
+    }
+  };
+  const onPickStore = (uniqueId: string) => {
+    setScalevStoreUniqueId(uniqueId);
+    const store = stores.find(s => s.uniqueId === uniqueId);
+    const wh = store?.warehouses[0];
+    setScalevWarehouseUniqueId(wh?.uniqueId ?? '');
+    setScalevWarehouseId(wh?.id ?? 0);
+  };
+  const syncCatalog = async () => {
+    setScalevError(null);
+    try {
+      await handleSave();
+      await watomatisOrdersApi.syncCatalog();
+      const fresh = await watomatisSettingsApi.getSettings();
+      setScalevCatalog(fresh.scalev.catalog ?? []);
+    } catch (err) {
+      setScalevError(err instanceof Error ? err.message : t('common.unknownError'));
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveSuccess(null);
@@ -67,6 +111,14 @@ export default function Shipping() {
           originVillageCode,
           originLabel: originLabel || undefined,
           defaultWeightKg: Number(defaultWeightKg) || 1,
+        },
+        scalev: {
+          enabled: scalevEnabled,
+          apiKey: scalevApiKey.trim(),
+          storeUniqueId: scalevStoreUniqueId,
+          warehouseUniqueId: scalevWarehouseUniqueId,
+          warehouseId: scalevWarehouseId,
+          catalog: scalevCatalog,
         },
       });
       setSaveSuccess(t('shipping.saveSuccess'));
@@ -203,6 +255,83 @@ export default function Shipping() {
               disabled={saving}
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Truck size={16} />}
+              {saving ? t('common.loading') : t('common.save')}
+            </button>
+          </div>
+        </div>
+
+        <div className="ai-agent-card">
+          <h2 className="ai-agent-section-title">
+            <ShoppingCart size={18} />
+            Scalev (Order otomatis)
+          </h2>
+
+          {scalevError && (
+            <div className="error-banner" style={{ marginBottom: '1rem' }}>
+              <AlertCircle size={18} />
+              <span className="error-banner-text">{scalevError}</span>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="shipping-inline-label">
+              <input
+                type="checkbox"
+                checked={scalevEnabled}
+                onChange={e => setScalevEnabled(e.target.checked)}
+                className="shipping-checkbox"
+              />
+              Aktifkan order ke Scalev
+            </label>
+          </div>
+
+          <div className="form-group">
+            <label>Scalev API key</label>
+            <input
+              type="password"
+              value={scalevApiKey}
+              onChange={e => setScalevApiKey(e.target.value)}
+              placeholder="Scalev API key"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Store</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select
+                value={scalevStoreUniqueId}
+                onChange={e => onPickStore(e.target.value)}
+                style={{ flex: 1 }}
+              >
+                <option value="">Pilih store</option>
+                {stores.map(s => (
+                  <option key={s.id} value={s.uniqueId}>{s.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void loadStores()}
+                disabled={!scalevApiKey.trim()}
+                style={{ flexShrink: 0 }}
+              >
+                Muat store
+              </button>
+            </div>
+          </div>
+
+          <div className="ai-agent-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => void syncCatalog()}
+              disabled={!scalevApiKey.trim() || !scalevStoreUniqueId}
+            >
+              Sync katalog ({scalevCatalog.length})
+            </button>
+            <button className="btn-primary" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
               {saving ? t('common.loading') : t('common.save')}
             </button>
           </div>

@@ -26,6 +26,8 @@ const Learning = lazy(() => import('./pages/Learning'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const License = lazy(() => import('./pages/License'));
 const Shipping = lazy(() => import('./pages/Shipping'));
+const Agents = lazy(() => import('./pages/Agents'));
+const Orders = lazy(() => import('./pages/Orders'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,7 +120,9 @@ function AppContent() {
             <Route path="message-tester" element={<MessageTester />} />
             <Route path="infrastructure" element={<Infrastructure />} />
             {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
+            <Route path="agents" element={<Agents />} />
             <Route path="ai-agent" element={<AiAgent />} />
+            <Route path="orders" element={<Orders />} />
             <Route path="drafts" element={<Drafts />} />
             <Route path="learning" element={<Learning />} />
             <Route path="get-started" element={<Onboarding />} />

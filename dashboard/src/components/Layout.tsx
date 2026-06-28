@@ -28,6 +28,7 @@ import {
   CreditCard,
   Truck,
   Settings,
+  ShoppingCart,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { type UserRole } from '../hooks/useRole';
@@ -43,7 +44,9 @@ interface LayoutProps {
 const primaryNavItems = [
   { to: '/get-started', icon: Rocket, key: 'getStarted' as const, adminOnly: false },
   { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
-  { to: '/ai-agent', icon: Bot, key: 'aiAgent' as const, adminOnly: false },
+  { to: '/chats', icon: MessageSquare, key: 'chats' as const, adminOnly: false },
+  { to: '/agents', icon: Bot, key: 'agents' as const, adminOnly: false },
+  { to: '/orders', icon: ShoppingCart, key: 'orders' as const, adminOnly: false },
   { to: '/drafts', icon: Inbox, key: 'drafts' as const, adminOnly: false },
   { to: '/learning', icon: GraduationCap, key: 'learning' as const, adminOnly: false },
   { to: '/shipping', icon: Truck, key: 'shipping' as const, adminOnly: false },
@@ -53,7 +56,6 @@ const primaryNavItems = [
 // SETTINGS group — OpenWA technical/setup items (collapsible)
 const settingsNavItems = [
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
-  { to: '/chats', icon: MessageSquare, key: 'chats' as const, adminOnly: false },
   { to: '/webhooks', icon: Webhook, key: 'webhooks' as const, adminOnly: false },
   { to: '/templates', icon: ClipboardList, key: 'templates' as const, adminOnly: false },
   { to: '/message-tester', icon: Send, key: 'messageTester' as const, adminOnly: false },
