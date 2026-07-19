@@ -1,6 +1,21 @@
 import { encryptSecret, decryptSecret } from './watomatis-crypto';
 
 describe('watomatis-crypto', () => {
+  beforeAll(() => {
+    process.env.WATOMATIS_SECRET = 'test-secret-for-crypto-spec';
+  });
+  afterAll(() => {
+    delete process.env.WATOMATIS_SECRET;
+  });
+
+  it('throws loudly when WATOMATIS_SECRET is missing (no silent default key)', () => {
+    const saved = process.env.WATOMATIS_SECRET;
+    delete process.env.WATOMATIS_SECRET;
+    expect(() => encryptSecret('x')).toThrow(/WATOMATIS_SECRET/);
+    expect(() => decryptSecret('enc:v1:AAAA')).toThrow(/WATOMATIS_SECRET/);
+    process.env.WATOMATIS_SECRET = saved;
+  });
+
   it('roundtrip: encrypt then decrypt returns original plaintext', () => {
     const plain = 'sk-super-secret-key-12345';
     expect(decryptSecret(encryptSecret(plain))).toBe(plain);

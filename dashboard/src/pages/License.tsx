@@ -1,19 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CreditCard, CheckCircle, Loader2, AlertCircle, ExternalLink, Star } from 'lucide-react';
+import { CreditCard, CheckCircle, Loader2, AlertCircle, ExternalLink, Star, KeyRound } from 'lucide-react';
 import { licenseApi } from '../services/api';
 import type { LicenseStatus } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PageHeader } from '../components/PageHeader';
 import './License.css';
 
-// ponytail: plans are hardcoded here; if backend ever drives them, move to API response
-const PLANS = [
-  { key: 'monthly',   label: 'Bulanan',  price: 25_000,  duration: '30 hari',              featured: false },
-  { key: 'sixmonth',  label: '6 Bulan',  price: 125_000, duration: '180 hari',             featured: false },
-  { key: 'yearly',    label: 'Tahunan',  price: 200_000, duration: '365 hari',             featured: false },
-  { key: 'lifetime',  label: 'Lifetime', price: 499_000, duration: 'sekali bayar / seumur hidup', featured: true },
-] as const;
+// Single offering: Watomatis Lifetime. Payment goes through Scalev (external checkout);
+// after paying, the buyer receives a signed license key (WTM1...) on WhatsApp and pastes it below.
+const SCALEV_CHECKOUT_URL = 'https://payment.inautomode.com/p/watomatis';
+const PLAN = { label: 'Lifetime', price: 99_000, duration: 'sekali bayar / seumur hidup' } as const;
 
 function formatRp(n: number) {
   return 'Rp' + n.toLocaleString('id-ID');
@@ -34,9 +31,10 @@ export default function License() {
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [payLoading, setPayLoading] = useState<string | null>(null);
-  const [payError, setPayError] = useState<string | null>(null);
+  const [licenseKey, setLicenseKey] = useState('');
+  const [activating, setActivating] = useState(false);
+  const [activateError, setActivateError] = useState<string | null>(null);
+  const [activated, setActivated] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -52,16 +50,22 @@ export default function License() {
 
   useEffect(() => { void fetchStatus(); }, [fetchStatus]);
 
-  const handlePay = async (planKey: string) => {
-    setPayLoading(planKey);
-    setPayError(null);
+  const openCheckout = () => window.open(SCALEV_CHECKOUT_URL, '_blank', 'noopener');
+
+  const activate = async () => {
+    if (!licenseKey.trim() || activating) return;
+    setActivating(true);
+    setActivateError(null);
+    setActivated(false);
     try {
-      const result = await licenseApi.pay(planKey, email || undefined);
-      window.open(result.paymentUrl, '_blank');
+      const next = await licenseApi.activate(licenseKey.trim());
+      setStatus(next);
+      setActivated(true);
+      setLicenseKey('');
     } catch (err) {
-      setPayError(err instanceof Error ? err.message : t('common.unknownError'));
+      setActivateError(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
-      setPayLoading(null);
+      setActivating(false);
     }
   };
 
@@ -106,6 +110,9 @@ export default function License() {
                     <CheckCircle size={16} className="license-check-icon" />
                     <span className="license-badge license-badge--active">{t('license.active')}</span>
                     <span className="license-valid-until">{statusText}</span>
+                    {status.issuedTo && (
+                      <span className="license-valid-until">{t('license.issuedTo', { phone: status.issuedTo })}</span>
+                    )}
                   </div>
                 ) : (
                   <p className="license-status-inactive">{statusText}</p>
@@ -113,58 +120,75 @@ export default function License() {
               </div>
             </div>
 
-            {/* Email input */}
-            <div className="license-email-row">
-              <label className="license-email-label" htmlFor="license-email">
-                {t('license.emailLabel')}
-              </label>
-              <input
-                id="license-email"
-                type="email"
-                className="license-email-input"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder={t('license.emailPlaceholder')}
-              />
-            </div>
-
-            {payError && (
-              <div className="error-banner">
-                <AlertCircle size={18} />
-                <span className="error-banner-text">{payError}</span>
+            {/* Activation card: paste the WTM1... key received on WhatsApp after purchase */}
+            {!status.active && (
+              <div className="license-status-card">
+                <div className="license-status-icon">
+                  <KeyRound size={24} />
+                </div>
+                <div className="license-status-body">
+                  <p className="license-status-label">{t('license.activateLabel')}</p>
+                  <div className="license-activate-row">
+                    <input
+                      className="license-activate-input"
+                      value={licenseKey}
+                      onChange={e => setLicenseKey(e.target.value)}
+                      placeholder={t('license.activatePlaceholder')}
+                      spellCheck={false}
+                    />
+                    <button
+                      className="license-pay-btn"
+                      onClick={() => void activate()}
+                      disabled={activating || !licenseKey.trim()}
+                    >
+                      {activating ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
+                      {t('license.activateBtn')}
+                    </button>
+                  </div>
+                  <p className="license-status-inactive">{t('license.activateHint')}</p>
+                  {activateError && (
+                    <div className="error-banner">
+                      <AlertCircle size={16} />
+                      <span className="error-banner-text">{activateError}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Plan cards */}
-            <div className="license-plans">
-              {PLANS.map(plan => (
-                <div key={plan.key} className={`license-plan-card${plan.featured ? ' license-plan-card--featured' : ''}`}>
-                  {plan.featured && (
-                    <div className="license-plan-badge">
-                      <Star size={12} />
-                      {t('license.bestValue')}
-                    </div>
-                  )}
-                  <div className="license-plan-header">
-                    <span className="license-plan-label">{plan.label}</span>
+            {activated && (
+              <div className="license-status-card license-status-card--active">
+                <div className="license-status-icon">
+                  <CheckCircle size={24} />
+                </div>
+                <div className="license-status-body">
+                  <p className="license-status-label">{t('license.activatedTitle')}</p>
+                  <p className="license-status-inactive">{t('license.activatedBody')}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Single plan card */}
+            {!status.active && (
+              <div className="license-plans license-plans--single">
+                <div className="license-plan-card license-plan-card--featured">
+                  <div className="license-plan-badge">
+                    <Star size={12} />
+                    {t('license.bestValue')}
                   </div>
-                  <div className="license-plan-price">{formatRp(plan.price)}</div>
-                  <div className="license-plan-duration">{plan.duration}</div>
-                  <button
-                    className="license-pay-btn"
-                    onClick={() => void handlePay(plan.key)}
-                    disabled={payLoading === plan.key}
-                  >
-                    {payLoading === plan.key ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                      <ExternalLink size={15} />
-                    )}
+                  <div className="license-plan-header">
+                    <span className="license-plan-label">{PLAN.label}</span>
+                  </div>
+                  <div className="license-plan-price">{formatRp(PLAN.price)}</div>
+                  <div className="license-plan-duration">{PLAN.duration}</div>
+                  <button className="license-pay-btn" onClick={openCheckout}>
+                    <ExternalLink size={15} />
                     {t('license.payBtn')}
                   </button>
+                  <p className="license-status-inactive">{t('license.afterPayHint')}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>

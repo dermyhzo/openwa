@@ -11,6 +11,8 @@ export interface WatomatisProfile {
   model: string;
   apiBaseUrl: string;
   mode: 'off' | 'supervised' | 'auto';
+  /** What the agent drives the customer toward: 'closing' (chase the sale), 'service' (help, no hard sell), or 'full_auto' (closing then after-sales). Default 'closing'. */
+  goal?: 'closing' | 'service' | 'full_auto';
   fallbackMessage: string;
   voiceCard: VoiceCard | null;
   qna: MinedQna[];

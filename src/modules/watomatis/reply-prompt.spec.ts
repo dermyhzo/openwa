@@ -60,7 +60,8 @@ describe('buildReplyPrompt', () => {
       orderCatalog: [{ ref: 'P1', name: 'Baju Batik', price: 'Rp150.000' }],
     });
     expect(p).toContain('TANGKAP ORDER');
-    expect(p).toContain('[P1] Baju Batik - Rp150.000');
+    // (F) = physical tag; digital items are tagged (D) and routed to the payment link instead.
+    expect(p).toContain('[P1] (F) Baju Batik - Rp150.000');
     expect(p).toContain('"order":');
     expect(p).toContain('readyToBook');
   });

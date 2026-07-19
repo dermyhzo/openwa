@@ -459,6 +459,12 @@
       gap: 16px;
       align-items: start;
     }
+    /* Single-plan layout: one centered card */
+    .pricing-grid--single {
+      grid-template-columns: 1fr;
+      max-width: 420px;
+      margin: 0 auto;
+    }
     .price-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -707,7 +713,7 @@
         <li><a href="#faq">FAQ</a></li>
       </ul>
 
-      <a class="btn btn--primary nav__cta" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Coba Gratis</a>
+      <a class="btn btn--primary nav__cta" href="https://wa.me/6283183929631?text=Halo%2C+saya+mau+tanya+Watomatis" target="_blank" rel="noopener">Tanya via WhatsApp</a>
 
       <button class="nav__burger" id="navBurger" aria-label="Buka menu" aria-expanded="false" aria-controls="navLinks">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
@@ -746,7 +752,7 @@
           Watomatis belajar cara kamu chat ke pelanggan, lalu membalas sendiri. Bukan bot CS generik yang teriak di setiap kalimat, tapi versi kamu yang santai, ringkas, dan manusiawi.
         </p>
         <div class="hero__actions">
-          <a class="btn btn--primary btn--lg" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Mulai Sekarang</a>
+          <a class="btn btn--primary btn--lg" href="https://wa.me/6283183929631?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Mulai Sekarang</a>
           <a class="btn btn--outline btn--lg" href="#cara-kerja">Lihat Cara Kerjanya</a>
         </div>
       </div>
@@ -1008,82 +1014,28 @@
     <div class="section-head" data-reveal>
       <span class="tag">Harga</span>
       <h2 id="pricing-heading">Harga terjangkau,<br>nilai yang jauh lebih besar.</h2>
-      <p>Pilih paket yang paling cocok untuk bisnismu. Tidak ada biaya tersembunyi.</p>
+      <p>Satu paket, sekali bayar, aktif selamanya. Tidak ada langganan, tidak ada biaya tersembunyi.</p>
     </div>
 
-    <div class="pricing-grid" data-reveal>
-      <!-- Bulanan -->
-      <div class="price-card">
-        <div class="price-name">Bulanan</div>
-        <div class="price-amount">
-          <span class="rp">Rp</span>
-          <span class="num">25.000</span>
-          <span class="per">/bulan</span>
-        </div>
-        <div class="price-desc">Cocok untuk kamu yang ingin coba dulu sebelum komitmen lebih panjang.</div>
-        <ul class="price-perks">
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Support via WhatsApp</li>
-        </ul>
-        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+Bulanan" aria-label="Pesan paket bulanan Rp25.000">Pesan Sekarang</a>
-      </div>
-
-      <!-- 6 Bulan -->
-      <div class="price-card">
-        <div class="price-name">6 Bulan</div>
-        <div class="price-amount">
-          <span class="rp">Rp</span>
-          <span class="num">125.000</span>
-          <span class="per">/6 bulan</span>
-        </div>
-        <div class="price-desc">Hemat dibanding bulanan. Ideal untuk seller aktif yang sudah siap go-auto.</div>
-        <ul class="price-perks">
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Support via WhatsApp</li>
-        </ul>
-        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+6+Bulan" aria-label="Pesan paket 6 bulan Rp125.000">Pesan Sekarang</a>
-      </div>
-
-      <!-- Tahunan -->
-      <div class="price-card">
-        <div class="price-name">Tahunan</div>
-        <div class="price-amount">
-          <span class="rp">Rp</span>
-          <span class="num">200.000</span>
-          <span class="per">/tahun</span>
-        </div>
-        <div class="price-desc">Pilihan paling populer untuk seller serius yang ingin efisiensi biaya sepanjang tahun.</div>
-        <ul class="price-perks">
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update berkala</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Prioritas support</li>
-        </ul>
-        <a class="btn btn--outline btn--price" href="mailto:halo@watomatis.id?subject=Paket+Tahunan" aria-label="Pesan paket tahunan Rp200.000">Pesan Sekarang</a>
-      </div>
-
-      <!-- Lifetime -->
-      <div class="price-card price-card--highlight" aria-label="Paket terbaik: Lifetime">
-        <div class="price-badge" aria-label="Rekomendasi terbaik">Hemat / Best Value</div>
+    <div class="pricing-grid pricing-grid--single" data-reveal>
+      <!-- Lifetime (satu-satunya paket) -->
+      <div class="price-card price-card--highlight" aria-label="Paket Watomatis Lifetime">
+        <div class="price-badge" aria-label="Sekali bayar">Sekali Bayar</div>
         <div class="price-name">Lifetime</div>
         <div class="price-amount">
           <span class="rp">Rp</span>
-          <span class="num">499.000</span>
+          <span class="num">99.000</span>
           <span class="per">sekali bayar</span>
         </div>
-        <div class="price-desc">Bayar sekali, pakai selamanya. Termasuk semua update seumur hidup. Tidak ada tagihan lagi.</div>
+        <div class="price-desc">Sekali bayar, aktif selamanya. Semua fitur langsung kebuka, tanpa langganan, tanpa perpanjang.</div>
         <ul class="price-perks">
           <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Semua fitur lengkap</li>
           <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Self-hosted di komputermu</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update seumur hidup</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Prioritas support eksklusif</li>
-          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Akses fitur beta lebih awal</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Update lewat satu perintah (git pull)</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Support via WhatsApp</li>
+          <li class="price-perk"><span class="price-perk-check" aria-hidden="true">&#10003;</span>Aktif selamanya, tanpa tagihan lagi</li>
         </ul>
-        <a class="btn btn--primary btn--price" href="mailto:halo@watomatis.id?subject=Paket+Lifetime" aria-label="Pesan paket Lifetime Rp499.000">Ambil Lifetime Sekarang</a>
+        <a class="btn btn--primary btn--price" href="https://payment.inautomode.com/p/watomatis" target="_blank" rel="noopener" aria-label="Ambil Watomatis Lifetime Rp99.000">Ambil Watomatis Sekarang</a>
       </div>
     </div>
   </div>
@@ -1155,7 +1107,7 @@
         </button>
         <div class="faq-a" id="faq-a-5" role="region">
           <div class="faq-a-inner">
-            Saat ini mendukung jasa pengiriman utama di Indonesia termasuk JNE, J&T, SiCepat, AnterAja, dan Pos Indonesia. Kami terus menambah layanan baru. Cukup sambungkan API ongkir dari RajaOngkir atau konfigurasi manual dari dashboard Watomatis.
+            Cek ongkir memakai layanan data ongkir api.co.id (kamu daftar gratis dan pasang API key-nya di dashboard). Kurir yang tersedia mengikuti layanan tersebut, mencakup kurir-kurir utama di Indonesia. Bot mendeteksi pertanyaan ongkir lalu menjawab dengan tarif real-time.
           </div>
         </div>
       </div>
@@ -1167,7 +1119,7 @@
         </button>
         <div class="faq-a" id="faq-a-6" role="region">
           <div class="faq-a-inner">
-            Mudah. Di mode semi-auto, semua balasan AI masuk ke antrian reviewmu dulu sebelum dikirim. Di mode full-auto, kamu bisa override kapanpun, Watomatis langsung berhenti membalas di chat itu begitu kamu tulis sendiri, dan kembali otomatis setelah kamu selesai.
+            Bisa. Di mode semi-auto (supervised), semua balasan AI masuk ke antrian review-mu dulu sebelum dikirim, jadi kamu pegang kendali penuh. Di mode full-auto kamu tetap bisa turun tangan menulis sendiri kapan pun; balasanmu sendiri tidak pernah disentuh bot, dan kamu bisa memindahkan mode auto/supervised/off kapan saja dari dashboard.
           </div>
         </div>
       </div>
@@ -1187,7 +1139,7 @@
       </h2>
       <p>Kamu sudah cukup sibuk. Serahkan CS-nya ke AI yang sudah kenal gayamu.</p>
       <div class="cta-actions">
-        <a class="btn btn--primary btn--lg" href="https://wa.me/628xxx?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Chat via WhatsApp</a>
+        <a class="btn btn--primary btn--lg" href="https://wa.me/6283183929631?text=Halo%2C+saya+mau+coba+Watomatis" target="_blank" rel="noopener">Chat via WhatsApp</a>
         <a class="btn btn--outline btn--lg" href="#pricing">Lihat Harga</a>
       </div>
     </div>
@@ -1212,9 +1164,10 @@
       <p class="footer__copy">&copy; <span id="footerYear">2026</span> Watomatis. Hak cipta dilindungi.</p>
 
       <nav class="footer__links" aria-label="Tautan footer">
-        <a href="mailto:halo@watomatis.id">Kontak</a>
-        <a href="#">Privasi</a>
-        <a href="#">Syarat &amp; Ketentuan</a>
+        <a href="https://wa.me/6283183929631?text=Halo%2C+saya+mau+tanya+Watomatis" target="_blank" rel="noopener">Kontak</a>
+        <a href="https://payment.inautomode.com/s/d/privacy-policy" target="_blank" rel="noopener">Privasi</a>
+        <a href="https://payment.inautomode.com/s/d/terms-of-service" target="_blank" rel="noopener">Syarat &amp; Ketentuan</a>
+        <a href="https://payment.inautomode.com/s/d/refund-policy" target="_blank" rel="noopener">Kebijakan Refund</a>
       </nav>
     </div>
   </div>

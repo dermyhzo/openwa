@@ -64,11 +64,13 @@ First build takes 3-10 minutes depending on your internet connection. Subsequent
 
 Navigate to: **http://localhost:2785**
 
+**Login:** the installer prints your dashboard API key (starts with `owa_k1_`) at the end of the install. It is also saved to `data/.api-key` inside the repo folder. Paste it on the login screen.
+
 First-time setup steps in the dashboard:
 
-1. **Sessions** - click "New Session", then scan the QR code with your WhatsApp mobile app (three dots menu, "Linked Devices", "Link a Device").
-2. **AI Agent** - enter your LLM API key (APImart or OpenRouter), then click "Learn" to upload your chat history or pull it from a connected session.
-3. **License** - activate your subscription (requires Duitku credentials configured in `.env` by the operator).
+1. **License** - paste the license key (`WTM1...`) that was sent to your WhatsApp after purchase, then click Activate.
+2. **Sessions** - click "New Session", then scan the QR code with your WhatsApp mobile app (three dots menu, "Linked Devices", "Link a Device").
+3. **AI Agent** - enter your LLM API key (APImart or OpenRouter), then click "Learn" and pull chat history from the connected session.
 
 ---
 

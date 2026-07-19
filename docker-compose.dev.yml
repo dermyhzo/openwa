@@ -65,13 +65,10 @@ services:
       - WEBHOOK_TIMEOUT=10000
       - WEBHOOK_MAX_RETRIES=3
       - QUEUE_ENABLED=false
-      # Watomatis licensing via Duitku (BYOT — set these in .env). Callback needs a public URL (tunnel).
-      - DUITKU_MERCHANT_CODE=${DUITKU_MERCHANT_CODE:-}
-      - DUITKU_MERCHANT_KEY=${DUITKU_MERCHANT_KEY:-}
-      - DUITKU_ENV=${DUITKU_ENV:-sandbox}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:2785}
-      # Secret used to encrypt stored API keys at rest. Set a strong value in .env for production.
-      - WATOMATIS_SECRET=${WATOMATIS_SECRET:-watomatis-dev-secret-change-me}
+      # Secret that encrypts stored API keys at rest. REQUIRED, no default: install.sh
+      # generates a unique value into .env; compose refuses to start without it.
+      - WATOMATIS_SECRET=${WATOMATIS_SECRET:?WATOMATIS_SECRET wajib diisi. Jalankan install.sh, atau isi WATOMATIS_SECRET di .env}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

@@ -56,6 +56,7 @@ export default function AiAgent() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activateSessionId, setActivateSessionId] = useState('');
   const [activateMode, setActivateMode] = useState<WatomatisMode>('supervised');
+  const [goal, setGoal] = useState<'closing' | 'service' | 'full_auto'>('closing');
   const [fallbackMessage, setFallbackMessage] = useState('Mohon tunggu ya kak, CS kami akan segera membantu.');
   const [activating, setActivating] = useState(false);
   const [activateSuccess, setActivateSuccess] = useState<string | null>(null);
@@ -146,6 +147,7 @@ export default function AiAgent() {
       if (p.model) setModel(p.model);
       if (p.apiBaseUrl) setApiBaseUrl(p.apiBaseUrl);
       if (p.mode) setActivateMode(p.mode);
+      if (p.goal) setGoal(p.goal);
       if (p.fallbackMessage) setFallbackMessage(p.fallbackMessage);
       if (p.brandKnowledge !== undefined) setBrandKnowledge(p.brandKnowledge || '');
       if (p.products) setProducts(p.products);
@@ -240,6 +242,7 @@ export default function AiAgent() {
         model: model.trim(),
         apiBaseUrl: apiBaseUrl.trim() || PROVIDER_BASE[provider],
         mode: activateMode,
+        goal,
         fallbackMessage,
         voiceCard: result.voiceCard,
         qna: result.qna,
@@ -656,6 +659,23 @@ export default function AiAgent() {
                   <option value="supervised">{t('aiAgent.modeSupervised')}</option>
                   <option value="auto">{t('aiAgent.modeAuto')}</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label>{t('aiAgent.goalLabel')}</label>
+                <select
+                  value={goal}
+                  onChange={e => setGoal(e.target.value as 'closing' | 'service' | 'full_auto')}
+                >
+                  <option value="closing">{t('aiAgent.goalClosing')}</option>
+                  <option value="service">{t('aiAgent.goalService')}</option>
+                  <option value="full_auto">{t('aiAgent.goalFullAuto')}</option>
+                </select>
+                {goal === 'full_auto' && (
+                  <small style={{ display: 'block', marginTop: '0.375rem', color: 'var(--text-muted)' }}>
+                    {t('aiAgent.goalHint')}
+                  </small>
+                )}
               </div>
 
               <div className="form-group">

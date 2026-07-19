@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LicenseService } from './license.service';
 import { RequireRole } from '../auth/decorators/auth.decorators';
@@ -11,12 +11,12 @@ export class LicenseController {
 
   /**
    * GET /api/license/status
-   * Returns: { active, tier, lifetime, expiresAt }
+   * Returns: { active, tier, lifetime, expiresAt, issuedTo }
    */
   @Get('status')
   @RequireRole(ApiKeyRole.OPERATOR)
   @ApiOperation({ summary: 'Get current license status' })
-  @ApiResponse({ status: 200, description: '{ active, tier, lifetime, expiresAt }' })
+  @ApiResponse({ status: 200, description: '{ active, tier, lifetime, expiresAt, issuedTo }' })
   async getStatus() {
     return this.licenseService.getStatus();
   }
@@ -29,25 +29,13 @@ export class LicenseController {
     return this.licenseService.getStatus();
   }
 
-  @Post('pay')
+  @Post('activate')
   @RequireRole(ApiKeyRole.OPERATOR)
-  @ApiOperation({ summary: 'Start a Duitku payment for a plan' })
-  @ApiResponse({ status: 201, description: 'Duitku payment URL to redirect the user to' })
-  @ApiResponse({ status: 400, description: 'Unknown plan or Duitku error' })
-  async pay(
-    @Body() body: { plan: string; email?: string },
-  ): Promise<{ paymentUrl: string }> {
-    const email = body.email ?? 'operator@watomatis.local';
-    return this.licenseService.startPayment(body.plan, email);
-  }
-
-  @Post('callback')
-  @ApiOperation({ summary: 'Duitku server-to-server payment callback (no auth required)' })
-  @ApiResponse({ status: 201, description: 'Callback processed' })
-  async callback(
-    @Body() body: Record<string, string>,
-  ): Promise<{ ok: true }> {
-    await this.licenseService.handleCallback(body);
-    return { ok: true };
+  @ApiOperation({ summary: 'Activate this instance with a signed Watomatis license key' })
+  @ApiResponse({ status: 201, description: 'License activated; returns the new status' })
+  @ApiResponse({ status: 400, description: 'Invalid license key' })
+  async activate(@Body() body: { key?: string }) {
+    if (!body?.key?.trim()) throw new BadRequestException('key is required');
+    return this.licenseService.activate(body.key);
   }
 }

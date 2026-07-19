@@ -62,6 +62,7 @@ const FORBIDDEN_PROD_SECRETS = new Set([
   'password',
   'secret',
   'admin',
+  'watomatis-dev-secret-change-me',
 ]);
 
 export interface SecretCheckEnv {
@@ -72,7 +73,9 @@ export interface SecretCheckEnv {
   s3AccessKey?: string;
   s3SecretKey?: string;
   apiMasterKey?: string;
-  /** ALLOW_DEV_API_KEY — when 'true' it seeds the well-known public `dev-admin-key` as an ADMIN credential. */
+  /** WATOMATIS_SECRET encrypts stored BYOT/Scalev keys at rest; must never be empty or a known default. */
+  watomatisSecret?: string;
+  /** ALLOW_DEV_API_KEY - when 'true' it seeds the well-known public `dev-admin-key` as an ADMIN credential. */
   allowDevApiKey?: string;
 }
 
@@ -90,6 +93,11 @@ export function assertNoDefaultSecretsInProduction(env: SecretCheckEnv): void {
 
   if (env.databaseType === 'postgres' && isWeak(env.databasePassword)) {
     problems.push('DATABASE_PASSWORD');
+  }
+  // WATOMATIS_SECRET encrypts stored customer keys at rest; empty or the public
+  // dev default would mean every install shares one known encryption key.
+  if (isWeak(env.watomatisSecret)) {
+    problems.push('WATOMATIS_SECRET');
   }
   if (env.storageType === 's3') {
     if (isWeak(env.s3AccessKey)) problems.push('S3_ACCESS_KEY');

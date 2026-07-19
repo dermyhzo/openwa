@@ -135,10 +135,29 @@ describe('assertNoDefaultSecretsInProduction', () => {
     expect(() => assertNoDefaultSecretsInProduction({ nodeEnv: 'development', allowDevApiKey: 'true' })).not.toThrow();
   });
 
-  it('allows the default sqlite + local-storage prod setup (no secrets needed)', () => {
+  it('allows the default sqlite + local-storage prod setup (only WATOMATIS_SECRET required)', () => {
+    expect(() =>
+      assertNoDefaultSecretsInProduction({
+        nodeEnv: 'production',
+        databaseType: 'sqlite',
+        storageType: 'local',
+        watomatisSecret: 'a-strong-random-secret-0123456789abcdef',
+      }),
+    ).not.toThrow();
+  });
+
+  it('refuses prod with a missing or default WATOMATIS_SECRET', () => {
     expect(() =>
       assertNoDefaultSecretsInProduction({ nodeEnv: 'production', databaseType: 'sqlite', storageType: 'local' }),
-    ).not.toThrow();
+    ).toThrow(/WATOMATIS_SECRET/);
+    expect(() =>
+      assertNoDefaultSecretsInProduction({
+        nodeEnv: 'production',
+        databaseType: 'sqlite',
+        storageType: 'local',
+        watomatisSecret: 'watomatis-dev-secret-change-me',
+      }),
+    ).toThrow(/WATOMATIS_SECRET/);
   });
 
   it('allows prod with strong, unique secrets', () => {
@@ -150,6 +169,7 @@ describe('assertNoDefaultSecretsInProduction', () => {
         storageType: 's3',
         s3AccessKey: 'AKIA-not-default-123',
         s3SecretKey: 'long-random-secret-value-098',
+        watomatisSecret: 'a-strong-random-secret-0123456789abcdef',
       }),
     ).not.toThrow();
   });
@@ -157,7 +177,12 @@ describe('assertNoDefaultSecretsInProduction', () => {
   it('does not check the DB password when using sqlite', () => {
     // DATABASE_PASSWORD is irrelevant for sqlite, so a leftover default must not block boot.
     expect(() =>
-      assertNoDefaultSecretsInProduction({ nodeEnv: 'production', databaseType: 'sqlite', databasePassword: 'openwa' }),
+      assertNoDefaultSecretsInProduction({
+        nodeEnv: 'production',
+        databaseType: 'sqlite',
+        databasePassword: 'openwa',
+        watomatisSecret: 'a-strong-random-secret-0123456789abcdef',
+      }),
     ).not.toThrow();
   });
 });

@@ -6,7 +6,7 @@ export interface UseLicenseResult extends LicenseStatus {
 }
 
 export function useLicense(): UseLicenseResult {
-  const [data, setData] = useState<LicenseStatus>({ active: false, tier: null, lifetime: false, expiresAt: null });
+  const [data, setData] = useState<LicenseStatus>({ active: false, tier: null, lifetime: false, expiresAt: null, issuedTo: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

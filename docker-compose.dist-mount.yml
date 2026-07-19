@@ -1,0 +1,6 @@
+services:
+  openwa:
+    volumes:
+      - ./data:/app/data
+      - ./dist:/app/dist
+      - ./dashboard/dist:/app/dashboard/dist

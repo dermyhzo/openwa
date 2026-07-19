@@ -76,3 +76,11 @@ uploads/
 docs/plans/
 CLAUDE.md
 _docs/
+.gstack/
+
+# Internal seller docs (never ship to buyers)
+docs/watomatis/READY-TO-SELL.md
+docs/watomatis/sales-kb.md
+docs/watomatis/launch-readiness-audit.md
+docs/superpowers/
+landing/qc-shots/

@@ -1,6 +1,6 @@
 # Watomatis — Setup & Fitur
 
-AI customer-service WhatsApp yang **belajar gaya CS-mu dari chat asli**, jalan **semi-otomatis → full-otomatis**, dengan **cek ongkir** dan **lisensi via Duitku**. Dibangun di atas fork OpenWA (self-hosted).
+AI customer-service WhatsApp yang **belajar gaya CS-mu dari chat asli**, jalan **semi-otomatis → full-otomatis**, dengan **cek ongkir** dan **aktivasi kode lisensi**. Dibangun di atas fork OpenWA (self-hosted).
 
 ## Fitur yang sudah ada
 - **Belajar dari chat** → Voice Card (gaya bicara) + Q&A. Dua sumber: **upload export** (WAnalysis CSV) atau **tarik langsung dari WhatsApp** yang tersambung.
@@ -10,7 +10,7 @@ AI customer-service WhatsApp yang **belajar gaya CS-mu dari chat asli**, jalan *
 - **Cek ongkir** (api.co.id, BYOT): deteksi pertanyaan ongkir → resolve kelurahan+kota → harga kurir real-time di balasan.
 - **Brand docs + katalog produk** masuk ke jawaban bot.
 - **Anti-ban**: delay manusiawi, cap harian, jam kerja.
-- **Lisensi/monetisasi** via **Duitku** (menu **License**): status + bayar/perpanjang.
+- **Lisensi**: beli sekali (Lifetime) di checkout resmi, kode lisensi `WTM1...` dikirim ke WhatsApp pembeli, aktifkan di menu **License**.
 - **Keamanan**: API key dienkripsi at-rest (AES-256-GCM).
 
 ## Halaman dashboard (http://localhost:2785)
@@ -21,22 +21,14 @@ AI customer-service WhatsApp yang **belajar gaya CS-mu dari chat asli**, jalan *
 # Fix WhatsApp Web stall di Apple Silicon (sudah dipakai)
 WWEBJS_WEB_VERSION=2.3000.1023204257
 
-# Enkripsi API key tersimpan — WAJIB ganti di produksi
-WATOMATIS_SECRET=ganti-dengan-string-acak-panjang
-
-# Lisensi via Duitku (BYOT — akun Duitku-mu)
-DUITKU_MERCHANT_CODE=DXXXX
-DUITKU_MERCHANT_KEY=xxxxxxxx
-DUITKU_ENV=sandbox            # atau production
-# Callback Duitku butuh URL publik (pakai tunnel saat lokal):
-#   ngrok http 2785  →  PUBLIC_BASE_URL=https://xxxx.ngrok.io
-PUBLIC_BASE_URL=http://localhost:2785
+# Enkripsi API key tersimpan - WAJIB ada (install.sh mengisinya otomatis dengan nilai acak)
+WATOMATIS_SECRET=diisi-otomatis-oleh-install-sh
 ```
 
 ## BYOT (Bring Your Own Token) — diisi di dashboard, bukan .env
 - **LLM**: APImart atau OpenRouter (key di halaman AI Agent).
 - **Cek ongkir**: api.co.id key (di kartu Activate → Shipping).
-- **Lisensi**: Duitku (lihat .env di atas — ini punya operator/pemilik produk).
+- **Lisensi**: kode `WTM1...` dari pembelian, ditempel di menu License (sekali saja).
 
 ## Alur pakai singkat
 1. **Sessions** → scan QR (sambungkan WhatsApp).

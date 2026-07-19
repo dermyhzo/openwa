@@ -9,6 +9,7 @@ import { WatomatisSettingsStore } from './watomatis-settings-store.service';
 import { WatomatisDraftStore } from './watomatis-drafts.service';
 import { ApimartChat } from './learning/llm-chat';
 import { buildReplyPrompt } from './reply-prompt';
+import { retrieveKnowledge } from './retriever';
 import { ShippingConnector } from './connectors/shipping.connector';
 import { ScalevConnector, ScalevCourierQuote } from './connectors/scalev.connector';
 import { WatomatisOrderStore, WatomatisOrder, OrderItem } from './watomatis-order-store.service';
@@ -19,6 +20,17 @@ const COOLDOWN_MS = 1_500;
 
 // Anti-ban: max typing delay we'll ever sleep (ms).
 const MAX_TYPING_DELAY_MS = 15_000;
+
+// A customer ASSERTING they already paid ("sudah bayar", "udah transfer", "barusan tf"...). This only
+// TRIGGERS a real check against Scalev; access is granted by the verified order, never by these words.
+// Deliberately does NOT match future intent ("mau bayar", "cara bayar") so it fires only on a claim.
+const CLAIMS_PAYMENT =
+  /\b(sudah|udah|udh|dah|telah|barusan|baru\s*saja|abis|habis)\s*(bayar|byr|transfer|tf|trf|bayarnya|lunas|melunasi|checkout|order(?:in)?)\b|\b(sudah|udah|dah)\s*(saya|aku|ku)?\s*(bayar|transfer|tf)\b|\b(bukti|proof)\s*(bayar|transfer|tf)\b|sudah\s*di\s*bayar|udah\s*dibayar|\blunas\b|\bpaid\b/i;
+
+/** WhatsApp chatId ("6281234...@c.us") -> raw digits, for matching against a Scalev order phone. */
+function phoneFromChatId(chatId: string): string {
+  return String(chatId ?? '').split('@')[0].replace(/\D/g, '');
+}
 
 /**
  * The Watomatis agent at runtime: listens on inbound messages and, for sessions that have a saved
@@ -77,7 +89,7 @@ export class WatomatisRuntime implements OnModuleInit {
 
       const settings = await this.settings.get();
       const history = await this.recentHistory(sessionId, m.chatId, m.body);
-      const { reply, canAnswer, order } = await this.generateReply(profile, m.body, settings, history);
+      const { reply, canAnswer, order } = await this.generateReply(profile, m.body, m.chatId, settings, history);
 
       const orderConfirmation = await this.handleOrder(profile, settings, sessionId, m.chatId, order);
 
@@ -164,17 +176,42 @@ export class WatomatisRuntime implements OnModuleInit {
     }
   }
 
+  /**
+   * FAITHFUL test harness: runs the EXACT reply path the live bot uses (profile + generateReply +
+   * Scalev payment verification + enforceVoice), for one message, without needing a WhatsApp
+   * connection. Behind the controller's API-key guard. So a test reflects what the bot really sends.
+   */
+  async debugReply(
+    sessionId: string,
+    text: string,
+    opts: { chatId?: string; history?: { role: 'cust' | 'me'; text: string }[] } = {},
+  ): Promise<{ reply: string; canAnswer: boolean; paymentStatus: string; order?: Record<string, unknown> }> {
+    const profile = await this.store.get(sessionId);
+    if (!profile) throw new Error(`No profile for session ${sessionId}`);
+    const settings = await this.settings.get();
+    const chatId = opts.chatId || '628000000000@c.us';
+    const { reply, canAnswer, order, paymentStatus } = await this.generateReply(
+      profile,
+      text,
+      chatId,
+      settings,
+      opts.history ?? [],
+    );
+    return { reply, canAnswer, paymentStatus, order };
+  }
+
   private async generateReply(
     profile: WatomatisProfile,
     userText: string,
+    chatId: string,
     settings: WatomatisSettings,
     history: { role: 'cust' | 'me'; text: string }[] = [],
-  ): Promise<{ reply: string; canAnswer: boolean; order?: Record<string, unknown> }> {
+  ): Promise<{ reply: string; canAnswer: boolean; order?: Record<string, unknown>; paymentStatus: 'verified' | 'unverified' | 'unknown' }> {
     const llm = new ApimartChat({
       baseUrl: profile.apiBaseUrl || 'https://api.apimart.ai/v1',
       apiKey: profile.apiKey,
       model: profile.model || 'gpt-4o-mini',
-      temperature: 0.7,
+      temperature: 0.4,
     });
     const nowText = new Date().toLocaleString('id-ID', {
       timeZone: 'Asia/Jakarta',
@@ -189,16 +226,31 @@ export class WatomatisRuntime implements OnModuleInit {
     const shippingEnabled = !!(sh.enabled && sh.apiKey && sh.originVillageCode);
     const sc = settings.scalev;
     const scalevEnabled = !!(sc.enabled && sc.apiKey && sc.storeUniqueId);
+
+    // Payment gate: a customer who merely SAYS "sudah bayar" must be checked against Scalev before
+    // any access/after-sales is granted. Their word is not proof; only a real paid order is.
+    let paymentStatus: 'verified' | 'unverified' | 'unknown' = 'unknown';
+    if (scalevEnabled && CLAIMS_PAYMENT.test(userText)) {
+      const paid = await this.scalev.findPaidOrder(sc.apiKey, phoneFromChatId(chatId), sc.storeUniqueId);
+      paymentStatus = paid ? 'verified' : 'unverified';
+      this.logger.log(
+        `Payment claim from ${chatId} -> ${paymentStatus}${paid ? ` (order ${paid.orderId} ${paid.status})` : ' (no paid order found)'}`,
+      );
+    }
+
     const orderCatalog = scalevEnabled
       ? sc.catalog.map(c => ({
           ref: c.ref,
           name: c.name,
           price: c.price ? `Rp${c.price.toLocaleString('id-ID')}` : undefined,
+          // Digital products carry no weight; this routes fulfilment (payment link vs shipped/ongkir order).
+          isDigital: c.weightGram === 0,
         }))
       : undefined;
 
     const knowledgeOpts = {
-      brandKnowledge: profile.brandKnowledge,
+      // RAG: send only the KB chunks relevant to this message instead of stuffing the whole doc (cuts latency + tokens).
+      brandKnowledge: retrieveKnowledge(profile.brandKnowledge ?? '', userText),
       products: profile.products,
     };
     const promptOpts = {
@@ -206,6 +258,8 @@ export class WatomatisRuntime implements OnModuleInit {
       captureOrder: scalevEnabled,
       orderCatalog,
       history,
+      goal: profile.goal,
+      paymentStatus,
       ...knowledgeOpts,
     };
     const res = await llm.json(buildReplyPrompt(persona, qna, nowText, promptOpts), userText);
@@ -246,7 +300,9 @@ export class WatomatisRuntime implements OnModuleInit {
       }
     }
 
-    return { reply, canAnswer, order };
+    reply = enforceVoice(reply, persona);
+
+    return { reply, canAnswer, order, paymentStatus };
   }
 
   /**
@@ -268,6 +324,20 @@ export class WatomatisRuntime implements OnModuleInit {
           .map(i => ({ ref: String(i['ref'] ?? ''), quantity: Number(i['quantity'] ?? 0) }))
           .filter(i => i.ref && i.quantity > 0)
       : [];
+
+    // Digital products are fulfilled via the payment link (customer self-checkout on Scalev), never a shipped order.
+    const digitalRefs = new Set(sc.catalog.filter(c => c.weightGram === 0).map(c => c.ref));
+    if (items.length > 0 && items.every(i => digitalRefs.has(i.ref))) {
+      // A digital-only order that still carries an address suggests a PHYSICAL product mis-tagged digital
+      // (blank/zero Scalev weight). Surface it so a shippable order is not dropped invisibly.
+      if (typeof order['address'] === 'string' && order['address'].trim()) {
+        this.logger.warn(
+          'Skipped booking an all-digital order that has a shipping address; if this should ship, set a real weight on the product in Scalev (weight 0 is treated as digital).',
+        );
+      }
+      return '';
+    }
+
     const pm = order['paymentMethod'];
     const merged = await this.orders.merge(sessionId, chatId, {
       customerName: typeof order['customerName'] === 'string' ? (order['customerName'] as string) : undefined,
@@ -345,6 +415,19 @@ export class WatomatisRuntime implements OnModuleInit {
       confirmation: `Order kakak sudah kami catat (no ${res.orderId})${courierLine}. Diproses ya kak 🙏`,
     };
   }
+}
+
+/**
+ * Hard-enforce the voice rules the persona states but a small LLM occasionally slips past (a stray
+ * "!", "aku" instead of "saya", "kamu"/"anda" instead of "kak"). Only rewrites what the persona
+ * EXPLICITLY forbids, so an agent whose learned voice really uses those keeps them untouched.
+ */
+export function enforceVoice(text: string, persona: string): string {
+  let out = text;
+  if (/tanda seru/i.test(persona)) out = out.replace(/!+/g, '.');
+  if (/jangan\s*["']?aku/i.test(persona)) out = out.replace(/\baku\b/gi, 'saya');
+  if (/jangan\s*["']?(kamu|anda)/i.test(persona)) out = out.replace(/\bkamu\b/gi, 'kakak').replace(/\banda\b/gi, 'kakak');
+  return out;
 }
 
 const REQUIRED_KEYS = ['customerName', 'phone', 'address', 'postalCode', 'city', 'paymentMethod'] as const;

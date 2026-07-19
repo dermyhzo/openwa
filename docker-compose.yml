@@ -78,6 +78,8 @@ services:
       - XDG_CACHE_HOME=/tmp/.cache
       - PORT=2785
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Encrypts stored BYOT/Scalev keys at rest. REQUIRED, no default (see install.sh).
+      - WATOMATIS_SECRET=${WATOMATIS_SECRET:?WATOMATIS_SECRET is required; run install.sh or set it in .env}
       # Database
       - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
       - DATABASE_NAME=${DATABASE_NAME:-/app/data/openwa.sqlite}

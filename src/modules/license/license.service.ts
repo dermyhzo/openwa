@@ -1,81 +1,57 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { LicenseStore } from './license-store.service';
-import { DuitkuService } from './duitku.service';
-import { PLANS } from './plans';
+import { verifyLicenseKey } from './license-key';
 
 export interface LicenseStatus {
   active: boolean;
-  tier: 'monthly' | 'sixmonth' | 'yearly' | 'lifetime' | null;
+  tier: 'lifetime' | null;
   lifetime: boolean;
   expiresAt: string | null;
+  /** Buyer phone the key was issued to (display/support). */
+  issuedTo: string | null;
 }
 
 @Injectable()
 export class LicenseService {
-  constructor(
-    private readonly store: LicenseStore,
-    private readonly duitku: DuitkuService,
-  ) {}
+  constructor(private readonly store: LicenseStore) {}
 
-  /** Returns true when a paid license is active (and not expired). */
+  /**
+   * A license is active ONLY when the stored key carries a valid ed25519 signature.
+   * A hand-edited state file without a signed key is rejected, so "status":"active"
+   * alone grants nothing.
+   */
   async isActive(): Promise<boolean> {
-    return this.store.isActive();
+    const state = await this.store.get();
+    if (!state.licenseKey) return false;
+    return verifyLicenseKey(state.licenseKey).valid;
   }
 
   async getStatus(): Promise<LicenseStatus> {
     const state = await this.store.get();
-    const active = await this.store.isActive();
-    const tier = (state.tier as LicenseStatus['tier']) ?? null;
+    const active = await this.isActive();
     return {
       active,
-      tier,
-      lifetime: tier === 'lifetime' && state.expiresAt === null,
-      expiresAt: state.expiresAt,
+      tier: active ? 'lifetime' : null,
+      lifetime: active,
+      expiresAt: null,
+      issuedTo: active ? (state.issuedTo ?? null) : null,
     };
   }
 
-  async startPayment(plan: string, email: string): Promise<{ paymentUrl: string }> {
-    const planConfig = PLANS[plan];
-    if (!planConfig) {
-      throw new BadRequestException(`Unknown plan: ${plan}. Available: ${Object.keys(PLANS).join(', ')}`);
+  /** Validate a signed license key and persist it. Throws 400 on an invalid key. */
+  async activate(key: string): Promise<LicenseStatus> {
+    const res = verifyLicenseKey(key);
+    if (!res.valid) {
+      throw new BadRequestException('Kode lisensi tidak valid. Periksa lagi atau hubungi support.');
     }
-
-    const { paymentUrl, merchantOrderId } = await this.duitku.createInquiry({
-      plan,
-      price: planConfig.priceIDR,
-      email,
+    await this.store.save({
+      status: 'active',
+      tier: res.payload.t,
+      expiresAt: null,
+      licenseKey: key.trim(),
+      issuedTo: res.payload.p || null,
+      lastOrderId: res.payload.o || null,
     });
-
-    await this.store.save({ tier: plan, lastOrderId: merchantOrderId });
-
-    return { paymentUrl };
-  }
-
-  async handleCallback(body: Record<string, string>): Promise<void> {
-    if (!this.duitku.verifyCallback(body)) {
-      return;
-    }
-
-    if (body.resultCode !== '00') {
-      return;
-    }
-
-    // Derive plan from the order id (format: wtm-{plan}-{timestamp})
-    const state = await this.store.get();
-    const orderId = body.merchantOrderId ?? state.lastOrderId ?? '';
-    const planKey = orderId.replace(/^wtm-/, '').replace(/-\d+$/, '');
-    const planConfig = PLANS[planKey];
-
-    if (!planConfig) {
-      return;
-    }
-
-    if (planConfig.durationDays === null) {
-      // Lifetime: expiresAt stays null
-      await this.store.save({ status: 'active', tier: planKey, expiresAt: null });
-    } else {
-      const expiresAt = new Date(Date.now() + planConfig.durationDays * 86400000).toISOString();
-      await this.store.save({ status: 'active', tier: planKey, expiresAt });
-    }
+    return this.getStatus();
   }
 }

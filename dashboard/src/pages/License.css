@@ -141,6 +141,12 @@
   gap: 1rem;
 }
 
+/* Single-offering layout: one centered, fixed-width card instead of a stretched grid. */
+.license-plans--single {
+  grid-template-columns: minmax(260px, 340px);
+  justify-content: center;
+}
+
 .license-plan-card {
   display: flex;
   flex-direction: column;
@@ -228,6 +234,25 @@
 .license-pay-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.license-activate-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.license-activate-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: var(--input-bg, transparent);
+  color: inherit;
 }
 
 @media (max-width: 768px) {

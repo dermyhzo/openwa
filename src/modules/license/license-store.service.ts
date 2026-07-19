@@ -7,6 +7,10 @@ export interface LicenseState {
   status: 'inactive' | 'active';
   expiresAt: string | null; // null = lifetime (never expires)
   lastOrderId: string | null;
+  /** Signed license key (WTM1....). The ONLY thing that makes a license count as active. */
+  licenseKey: string | null;
+  /** Buyer phone from the key payload (display/support). */
+  issuedTo: string | null;
   updatedAt: string;
 }
 
@@ -15,6 +19,8 @@ const DEFAULT_STATE: LicenseState = {
   status: 'inactive',
   expiresAt: null,
   lastOrderId: null,
+  licenseKey: null,
+  issuedTo: null,
   updatedAt: new Date().toISOString(),
 };
 
@@ -35,6 +41,8 @@ export class LicenseStore {
         status: parsed.status ?? 'inactive',
         expiresAt: parsed.expiresAt !== undefined ? parsed.expiresAt : (parsed.validUntil ?? null),
         lastOrderId: parsed.lastOrderId ?? null,
+        licenseKey: parsed.licenseKey ?? null,
+        issuedTo: parsed.issuedTo ?? null,
         updatedAt: parsed.updatedAt ?? new Date().toISOString(),
       };
     } catch {
@@ -52,13 +60,5 @@ export class LicenseStore {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     await fs.writeFile(this.filePath, JSON.stringify(updated, null, 2), 'utf8');
     return updated;
-  }
-
-  /** Returns true when status=active AND (expiresAt is null = lifetime OR expiresAt is in the future). */
-  async isActive(): Promise<boolean> {
-    const state = await this.get();
-    if (state.status !== 'active') return false;
-    if (state.expiresAt === null) return true; // lifetime
-    return new Date(state.expiresAt) > new Date();
   }
 }

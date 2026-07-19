@@ -697,6 +697,7 @@ export interface SaveProfileBody {
   model: string;
   apiBaseUrl: string;
   mode: WatomatisMode;
+  goal?: 'closing' | 'service' | 'full_auto';
   fallbackMessage: string;
   voiceCard: LearnVoiceCard;
   qna: LearnQna[];
@@ -850,6 +851,7 @@ export const watomatisApi = {
   getProfile: (sessionId: string) =>
     request<{
       mode?: WatomatisMode;
+      goal?: 'closing' | 'service' | 'full_auto';
       provider?: string;
       model?: string;
       apiBaseUrl?: string;
@@ -897,17 +899,18 @@ export const watomatisApi = {
 
 export interface LicenseStatus {
   active: boolean;
-  tier: 'monthly' | 'sixmonth' | 'yearly' | 'lifetime' | null;
+  tier: 'lifetime' | null;
   lifetime: boolean;
   expiresAt: string | null;
+  issuedTo: string | null;
 }
 
 export const licenseApi = {
   getStatus: () => request<LicenseStatus>('/license/status'),
-  pay: (plan: string, email?: string) =>
-    request<{ paymentUrl: string }>('/license/pay', {
+  activate: (key: string) =>
+    request<LicenseStatus>('/license/activate', {
       method: 'POST',
-      body: JSON.stringify({ plan, ...(email ? { email } : {}) }),
+      body: JSON.stringify({ key }),
     }),
 };
 

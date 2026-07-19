@@ -108,7 +108,9 @@ export class ScalevConnector {
       stores.push({
         id,
         name: str((s as Record<string, unknown>)['name']),
-        uniqueId: str(d['uuid']) || str(d['unique_id']),
+        // Scalev order/shipping routes need the store's `unique_id` (store_... prefix), NOT the `uuid`.
+        // Passing the uuid as store_unique_id fails order creation with "You have no access to this store."
+        uniqueId: str(d['unique_id']) || str(d['uuid']),
         warehouses,
       });
     }
@@ -208,4 +210,95 @@ export class ScalevConnector {
     const d = (res.data as Record<string, unknown>) ?? {};
     return { orderId: str(d['id']) || str(d['unique_id']), status: str(d['status']) || 'new' };
   }
+
+  /** Recent orders (newest first) with just the fields the license issuer needs. */
+  async listRecentOrders(key: string, pageSize = 25): Promise<{ orderId: string; status: string; phone: string }[]> {
+    const res = await this.call(key, 'GET', `/order?page_size=${pageSize}`);
+    if ('error' in res) return [];
+    const rows = Array.isArray((res.data as Record<string, unknown>)?.['results'])
+      ? ((res.data as Record<string, unknown>)['results'] as Record<string, unknown>[])
+      : [];
+    return rows.map(o => {
+      const cust = (o['customer'] as Record<string, unknown>) ?? {};
+      return {
+        orderId: str(o['unique_id']) || str(o['id']),
+        status: str(o['status']).toLowerCase(),
+        phone: str(o['customer_phone']) || str(cust['phone']) || str(cust['whatsapp']),
+      };
+    }).filter(o => o.orderId);
+  }
+
+  /** Order detail scan: does this order contain the given product id? Also returns the buyer phone. */
+  async orderProduct(key: string, orderId: string, productId: string): Promise<{ contains: boolean; phone: string }> {
+    const res = await this.call(key, 'GET', `/order/${orderId}`);
+    if ('error' in res) return { contains: false, phone: '' };
+    const d = (res.data as Record<string, unknown>) ?? {};
+    const cust = (d['customer'] as Record<string, unknown>) ?? {};
+    const phone = str(d['customer_phone']) || str(cust['phone']) || str(cust['whatsapp']);
+    const variants = Array.isArray(d['ordervariants']) ? (d['ordervariants'] as Record<string, unknown>[]) : [];
+    const contains = variants.some(v => {
+      const variant = (v['variant'] as Record<string, unknown>) ?? {};
+      const product = (variant['product'] as Record<string, unknown>) ?? {};
+      return str(product['id']) === productId;
+    });
+    return { contains, phone };
+  }
+
+  /**
+   * Best-effort payment verification: does this phone already have a settled/paid order?
+   * Scalev has no top-level paid flag and its `search` param does not index phone, so we list
+   * recent orders and match by phone suffix + a money-received status. Used to gate access so a
+   * customer who merely *claims* "sudah bayar" cannot get the product without an actual paid order.
+   * Never throws; returns the matching order (id + status) or null.
+   */
+  async findPaidOrder(
+    key: string,
+    phone: string,
+    storeUniqueId?: string,
+  ): Promise<{ orderId: string; status: string } | null> {
+    const want = phoneSuffix(phone);
+    if (want.length < 7) return null; // too short to match safely
+    const res = await this.call(key, 'GET', '/order?page_size=50');
+    if ('error' in res) return null;
+    const rows = Array.isArray((res.data as Record<string, unknown>)?.['results'])
+      ? ((res.data as Record<string, unknown>)['results'] as Record<string, unknown>[])
+      : [];
+    for (const o of rows) {
+      const status = str(o['status']).toLowerCase();
+      if (!PAID_STATUSES.has(status)) continue;
+      const cust = (o['customer'] as Record<string, unknown>) ?? {};
+      const oPhone = phoneSuffix(str(o['customer_phone']) || str(cust['phone']) || str(cust['whatsapp']));
+      if (!oPhone || oPhone !== want) continue;
+      if (storeUniqueId) {
+        const st = (o['store'] as Record<string, unknown>) ?? {};
+        const oStore = str(st['unique_id']) || str(st['uuid']) || str(st['id']);
+        if (oStore && oStore !== storeUniqueId) continue; // paid, but for a different store/product
+      }
+      return { orderId: str(o['unique_id']) || str(o['id']), status };
+    }
+    return null;
+  }
 }
+
+/** Indonesian phone -> subscriber suffix (drop +62/62/0 trunk prefix), for cross-format matching. */
+function phoneSuffix(raw: string): string {
+  const d = String(raw ?? '').replace(/\D/g, '');
+  return d.replace(/^62/, '').replace(/^0/, '').slice(-11);
+}
+
+/** Order statuses that mean money was actually received (not draft/pending/cancelled/expired). */
+export const PAID_STATUSES = new Set([
+  'paid',
+  'packing',
+  'packed',
+  'ready_to_ship',
+  'shipping',
+  'shipped',
+  'on_delivery',
+  'delivered',
+  'received',
+  'completed',
+  'done',
+  'settled',
+  'settlement',
+]);

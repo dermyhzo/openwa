@@ -32,6 +32,7 @@ import { LicenseService } from '../license/license.service';
 import { WatomatisOrderStore, WatomatisOrder } from './watomatis-order-store.service';
 import { ScalevConnector, ScalevStore } from './connectors/scalev.connector';
 import { WatomatisRuntime } from './watomatis-runtime.service';
+import { LicenseIssuerService } from './license-issuer.service';
 
 const MAX_CSV_BYTES = 20 * 1024 * 1024; // 20 MB
 const READINESS_MIN_RECORDINGS = 20;
@@ -61,7 +62,15 @@ export class WatomatisController {
     private readonly scalev: ScalevConnector,
     private readonly license: LicenseService,
     private readonly runtime: WatomatisRuntime,
+    private readonly issuer: LicenseIssuerService,
   ) {}
+
+  @Post('issuer/run')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Run one license-issuer poll now (seller instance only; no-op without issuer key)' })
+  async runIssuer() {
+    return this.issuer.tick();
+  }
 
   @Post('learn')
   @RequireRole(ApiKeyRole.OPERATOR)
@@ -168,6 +177,18 @@ export class WatomatisController {
   @ApiResponse({ status: 200, description: 'List of session ids' })
   async listProfiles(): Promise<{ sessionIds: string[] }> {
     return { sessionIds: await this.store.list() };
+  }
+
+  @Post('debug-reply')
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Run the live reply pipeline for a message (testing) without WhatsApp' })
+  @ApiResponse({ status: 201, description: 'The reply the bot would send, plus payment status' })
+  async debugReply(
+    @Body()
+    body: { sessionId: string; text: string; chatId?: string; history?: { role: 'cust' | 'me'; text: string }[] },
+  ): Promise<{ reply: string; canAnswer: boolean; paymentStatus: string; order?: Record<string, unknown> }> {
+    if (!body?.sessionId || !body?.text) throw new BadRequestException('sessionId and text are required');
+    return this.runtime.debugReply(body.sessionId, body.text, { chatId: body.chatId, history: body.history });
   }
 
   @Get('readiness/:sessionId')

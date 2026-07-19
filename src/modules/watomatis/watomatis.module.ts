@@ -13,6 +13,7 @@ import { WatomatisRecorder } from './watomatis-recorder.service';
 import { ShippingConnector } from './connectors/shipping.connector';
 import { ScalevConnector } from './connectors/scalev.connector';
 import { WatomatisOrderStore } from './watomatis-order-store.service';
+import { LicenseIssuerService } from './license-issuer.service';
 
 @Module({
   imports: [MessageModule, SessionModule, LicenseModule],
@@ -28,6 +29,7 @@ import { WatomatisOrderStore } from './watomatis-order-store.service';
     ShippingConnector,
     ScalevConnector,
     WatomatisOrderStore,
+    LicenseIssuerService,
   ],
   exports: [WatomatisService, WatomatisStore, WatomatisSettingsStore, WatomatisRecordingStore, ShippingConnector],
 })

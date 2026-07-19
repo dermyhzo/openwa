@@ -115,6 +115,7 @@ async function bootstrap() {
     s3AccessKey: process.env.S3_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY,
     s3SecretKey: process.env.S3_SECRET_ACCESS_KEY || process.env.S3_SECRET_KEY,
     apiMasterKey: process.env.API_MASTER_KEY,
+    watomatisSecret: process.env.WATOMATIS_SECRET,
     allowDevApiKey: process.env.ALLOW_DEV_API_KEY,
   });
 

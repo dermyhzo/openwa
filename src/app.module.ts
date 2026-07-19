@@ -221,7 +221,7 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
     PluginsApiModule, // Phase 5: Plugins API
     ExtensionsModule, // First-party extension plugins (registered disabled)
     WatomatisModule, // Watomatis: chat-learning pipeline (voice card + Q&A from CSV)
-    LicenseModule, // Watomatis license/monetization — Duitku payments (BYOT)
+    LicenseModule, // Watomatis license: signed key activation (pay via Scalev checkout)
     ...serveStaticModules, // Bundled dashboard SPA (production single-port setup)
   ],
 })

@@ -70,6 +70,8 @@ check_docker() {
     die "Docker is installed but the daemon is not running. Start Docker Desktop (or 'sudo systemctl start docker') and re-run."
   fi
 
+  command -v curl &>/dev/null || die "curl is not installed. Install it and re-run."
+
   success "Docker OK (${COMPOSE_CMD})"
 }
 
@@ -138,6 +140,25 @@ wait_healthy() {
   done
 }
 
+# ── 5. show the dashboard login key ───────────────────────────────────────────
+# The admin API key is generated inside the container on first boot and written
+# to data/.api-key. Without it the buyer cannot log in, so print it loudly here.
+show_login_key() {
+  local key_file="data/.api-key"
+  local waited=0
+  while [[ ! -s "$key_file" && $waited -lt 30 ]]; do
+    sleep 2
+    (( waited += 2 ))
+  done
+  if [[ -s "$key_file" ]]; then
+    LOGIN_KEY="$(cat "$key_file" 2>/dev/null || true)"
+  fi
+  if [[ -z "${LOGIN_KEY:-}" ]]; then
+    # fallback: the container logs print it on first boot
+    LOGIN_KEY="$($COMPOSE_CMD -f "$COMPOSE_FILE" logs 2>/dev/null | grep -oE 'owa_k1_[a-f0-9]+' | tail -1 || true)"
+  fi
+}
+
 # ── main ───────────────────────────────────────────────────────────────────────
 printf '\n'
 info "=== Watomatis installer ==="
@@ -147,18 +168,27 @@ check_docker
 setup_env
 start_containers
 wait_healthy
+show_login_key
 
 printf '\n'
 success "============================================================"
 success "  Watomatis is running at http://localhost:${APP_PORT}"
 success "============================================================"
 printf '\n'
-printf '  Next steps:\n'
-printf '    1. Open http://localhost:%s in your browser\n' "$APP_PORT"
-printf '    2. Go to Sessions, click "New Session", scan the QR code with WhatsApp\n'
-printf '    3. Go to AI Agent, enter your LLM API key, then click Learn\n'
-printf '    4. Go to License to activate your subscription\n'
+if [[ -n "${LOGIN_KEY:-}" ]]; then
+  printf '  \033[1;33mAPI KEY LOGIN DASHBOARD kamu (SIMPAN INI):\033[0m\n'
+  printf '  \033[1m%s\033[0m\n' "$LOGIN_KEY"
+  printf '  (juga tersimpan di file %s/data/.api-key)\n' "$REPO_DIR"
+else
+  warn "API key login belum terbaca. Lihat dengan: cat ${REPO_DIR}/data/.api-key"
+fi
 printf '\n'
-printf '  To stop:   %s -f %s down\n' "$COMPOSE_CMD" "$COMPOSE_FILE"
-printf '  To update: git pull && %s -f %s up -d --build\n' "$COMPOSE_CMD" "$COMPOSE_FILE"
+printf '  Langkah berikutnya:\n'
+printf '    1. Buka http://localhost:%s di browser, login pakai API key di atas\n' "$APP_PORT"
+printf '    2. Menu License: tempel kode lisensi (WTM1...) yang dikirim ke WhatsApp kamu, klik Aktifkan\n'
+printf '    3. Menu Sessions: "New Session", scan QR pakai WhatsApp nomor CS kamu\n'
+printf '    4. Menu AI Agent: isi API key AI kamu (apimart.ai/openrouter), lalu ikuti panduan belajar\n'
+printf '\n'
+printf '  Stop:   %s -f %s down\n' "$COMPOSE_CMD" "$COMPOSE_FILE"
+printf '  Update: git pull && %s -f %s up -d --build\n' "$COMPOSE_CMD" "$COMPOSE_FILE"
 printf '\n'
